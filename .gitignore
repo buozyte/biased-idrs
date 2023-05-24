@@ -1,5 +1,10 @@
 .ipynb_checkpoints/
 data/
 *.pth
+*.icloud
 __pycache__/
 .idea/
+dataset_cache/*
+trained_models/*
+.DS_Store
+logs/
