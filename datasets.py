@@ -17,6 +17,9 @@ DATASETS = ["imagenet", "cifar10", "unaugmented_cifar10", "mnist", "unaugmented_
 
 def get_dataset(dataset: str, split: str) -> Dataset:
     """Return the dataset as a PyTorch Dataset object"""
+    if not os.path.exists("./dataset_cache"):
+        os.makedirs("./dataset_cache", exist_ok=True)
+
     if dataset == "imagenet":
         return _imagenet(split)
     elif dataset == "cifar10":

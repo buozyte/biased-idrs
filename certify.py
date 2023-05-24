@@ -2,6 +2,7 @@
 import argparse
 import datetime
 from time import time
+import os
 
 import torch
 from torch.utils.data import DataLoader
@@ -19,8 +20,8 @@ parser.add_argument("base_classifier", type=str,
                     help="path to saved pytorch model of base classifier")
 parser.add_argument("base_sigma", type=float, default=0.5,
                     help="base smoothing strength for samples closest to the boundary")
-parser.add_argument("outfile", type=str,
-                    help="output file")
+parser.add_argument("out_dir", type=str,
+                    help="output directory")
 parser.add_argument("--batch", type=int, default=1000,
                     help="batch size")
 parser.add_argument("--skip", type=int, default=1,
@@ -64,7 +65,10 @@ if __name__ == "__main__":
     base_classifier = get_architecture(checkpoint["arch"], args.dataset, device)
 
     # prepare output file
-    f = open(args.outfile, 'a')
+    if not os.path.exists(args.outdir):
+        os.makedirs(args.outdir, exist_ok=True)
+    outfile = os.path.join(args.outdir, f'sigma_{args.base_sigma}')
+    f = open(outfile, 'a')
     print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f, flush=True)
 
     # --- prepare data ---
