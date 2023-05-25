@@ -72,7 +72,6 @@ if __name__ == "__main__":
     if not os.path.exists(args.out_dir):
         os.makedirs(args.out_dir, exist_ok=True)
     outfile = os.path.join(args.out_dir, f'sigma_{args.base_sigma}{add_model_type}')
-    print(outfile)
     f = open(outfile, 'a')
     print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f, flush=True)
 

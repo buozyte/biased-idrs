@@ -51,7 +51,7 @@ class InputDependentRSClassifier(nn.Module):
         :return: variance w.r.t. current input
         """
 
-        return self.sigma * np.exp(self.r * (1/self.k) * self.distances[x_index] - self.m)
+        return self.sigma * np.exp(self.rate * (1/self.k) * self.distances[x_index] - self.m)
 
     def sample_under_noise(self, x, x_index, n, batch_size):
         """
@@ -65,8 +65,8 @@ class InputDependentRSClassifier(nn.Module):
         """
 
         # create tensor containing all classes (from 0 to num_classes-1) and the according counts
-        classes = torch.arange(self.num_classes)
-        class_counts = torch.zeros([self.num_classes])
+        classes = torch.arange(self.num_classes).to(self.device)
+        class_counts = torch.zeros([self.num_classes]).to(self.device)
 
         # sample and evaluate perturbed samples in batches
         remaining_samples = n
