@@ -154,7 +154,7 @@ class InputDependentRSClassifier(nn.Module):
 
         # generate samples and estimate lower bound of p_a
         counts = self.sample_under_noise(x, x_index, n, batch_size)
-        p_a = self.lower_conf_bound(counts[c_a], n, alpha)
+        p_a = self.lower_conf_bound(counts[c_a].cpu(), n, alpha)
 
         if p_a > 0.5:
             sigma_0 = self.sigma_id(x_index)

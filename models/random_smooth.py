@@ -124,7 +124,7 @@ class RandSmoothedClassifier(nn.Module):
 
         # generate samples to estimate/guess lower bound of p_a
         counts = self.sample_under_noise(x, n, batch_size)
-        p_a = self.lower_conf_bound(counts[c_a], n, alpha)
+        p_a = self.lower_conf_bound(counts[c_a].cpu(), n, alpha)
 
         if p_a > 0.5:
             return c_a, self.sigma * norm.ppf(p_a)  # norm.ppf = Phi^(-1)

@@ -51,7 +51,7 @@ parser.add_argument('--input_dependent', default=False, type=bool,
                     help="Indicator whether to use input-dependent computation of the variance")
 args = parser.parse_args()
 
-# python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_1.00 --batch 400 --base_sigma 1.00
+# python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.50 --batch 400 --base_sigma 0.50 --input_dependent True
 
 
 def main():
@@ -90,20 +90,22 @@ def main():
 
     dist_computer = KNNDistComp(train_dataset, 0, device)
 
-    model = get_architecture(args.arch, args.dataset, device)
+    base_model = get_architecture(args.arch, args.dataset, device)
 
     if args.input_dependent:
-        model = InputDependentRSClassifier(base_classifier=model, num_classes=num_classes, sigma=args.base_sigma,
+        model = InputDependentRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
                                            distances=None, rate=args.rate, k=args.num_nearest, m=norm_const,
                                            device=device).to(device)
+        add_model_name = "_id"
     else:
-        model = RandSmoothedClassifier(base_classifier=model, num_classes=num_classes, sigma=args.base_sigma,
+        model = RandSmoothedClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
                                        device=device).to(device)
+        add_model_name = ""
 
-    logfile_name = os.path.join(args.outdir, 'log.txt')
+    logfile_name = os.path.join(args.outdir, f'log{add_model_name}.txt')
     init_logfile(logfile_name, "epoch\ttime\tlr\ttrain loss\ttrain acc\ttestloss\ttest acc")
 
-    criterion = CrossEntropyLoss().cuda()
+    criterion = CrossEntropyLoss().to(device)
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     scheduler = StepLR(optimizer, step_size=args.lr_step_size, gamma=args.gamma)
 
@@ -121,7 +123,8 @@ def main():
                                       num_classes,
                                       args.input_dependent,
                                       norm_const,
-                                      device)
+                                      device,
+                                      epoch)
         test_loss, test_acc = test(test_loader,
                                    model,
                                    criterion,
@@ -145,12 +148,12 @@ def main():
             'arch': args.arch,
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
-        }, os.path.join(args.outdir, 'checkpoint.pth.tar'))
+        }, os.path.join(args.outdir, f'checkpoint{add_model_name}.pth.tar'))
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
           rate: float, dist_computer: KNNDistComp, spatial_size: int, num_classes: int, input_dependent: bool,
-          norm_const: float, device: torch.device):
+          norm_const: float, device: torch.device, epoch: int):
     """
     Run one epoch of training.
 
@@ -168,6 +171,10 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     :param device: device used for the computations
     :return: average loss and accuracy
     """
+    
+    batch_time = AverageMeter()
+    data_time = AverageMeter()
+    end = time.time()
 
     losses = AverageMeter()
     acc = AverageMeter()
@@ -175,6 +182,9 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     model.train()
 
     for i, (inputs, labels) in enumerate(loader, 0):
+        # measure data loading time
+        data_time.update(time.time() - end)
+
         inputs = inputs.to(device)
         labels = labels.type(torch.LongTensor).to(device)
 
@@ -186,19 +196,34 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
             sigmas = base_sigma
         inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
 
-        # forward + compute accuracy
+        # forward + loss
         outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        losses.update(loss.item(), inputs.size(0))
+
+        # compute accuracy
         acc1 = accuracy(outputs, labels)
         acc.update(acc1[0].cpu().numpy()[0], inputs.size(0))
 
-        # compute loss + backward
-        loss = criterion(outputs, labels)
-        losses.update(loss.item(), inputs.size(0))
-        loss.backward()
-
         # zero the parameter gradients and run the optimization
         optimizer.zero_grad()
+        loss.backward()
         optimizer.step()
+
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
+        
+        acc.val = acc.val.item()
+        
+        if i % 10 == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
+                epoch, i, len(loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=acc))
 
     return losses.avg, acc.avg
 

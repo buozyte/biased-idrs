@@ -1,6 +1,7 @@
 # evaluate a smoothed classifier on a dataset
 import argparse
 from torch.utils.data import DataLoader
+import os
 
 from datasets import get_dataset, DATASETS, get_num_classes
 from knn import KNNDistComp
@@ -19,8 +20,8 @@ parser.add_argument("base_classifier", type=str,
                     help="path to saved pytorch model of base classifier")
 parser.add_argument("base_sigma", type=float, default=0.5,
                     help="base smoothing strength for samples closest to the boundary")
-parser.add_argument("outfile", type=str,
-                    help="output file")
+parser.add_argument("out_dir", type=str,
+                    help="output directory")
 parser.add_argument("--batch", type=int, default=1000,
                     help="batch size")
 parser.add_argument("--skip", type=int, default=1,
@@ -52,12 +53,20 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    
+    if args.input_dependent:
+        add_model_type = "_id"
+    else:
+        add_model_type = ""
 
     # load the base classifier
     checkpoint = torch.load(args.base_classifier)  # if I wanna use cuda, delete the map_location argument
     base_classifier = get_architecture(checkpoint["arch"], args.dataset, device)
 
     # prepare output file
+    if not os.path.exists(args.out_dir):
+        os.makedirs(args.out_dir, exist_ok=True)
+    outfile = os.path.join(args.out_dir, f'N_{args.N}{add_model_type}')
     f = open(args.outfile, 'a')
     print("idx\tlabel\tpredict\tcorrect\ttime", file=f, flush=True)
 
