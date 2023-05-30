@@ -35,6 +35,38 @@ class KNNDistComp:
         data.requires_grad = False
         return data
 
+    def _obtain_data_with_labels(self):
+        """
+
+        :return: obtain the
+        """
+
+        data = None
+        labels = None
+        for (data_, labels_) in self.main_dataloader:
+            data = data_.to(self.device)
+            labels = labels_.to(self.device)
+        data.requires_grad = False
+        labels.requires_grad = False
+        return data, labels
+
+    def compute_1nn_oracle(self, data, norm=2):
+        """
+
+        :param data:
+        :param norm:
+        :return:
+        """
+
+        data = data.to(self.device)
+        raw_data, raw_labels = self._obtain_data_with_labels().to(self.device)
+
+        dists = torch.cdist(data.reshape((len(data), -1)),
+                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+
+        _, sorted_indices = dists.argsort(dim=1)[0].sort()
+        return raw_labels[sorted_indices[0]]
+
     def compute_dist(self, data, k, norm=2):
         """
 
