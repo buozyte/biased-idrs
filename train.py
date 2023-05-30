@@ -51,7 +51,6 @@ parser.add_argument('--input_dependent', default=False, type=bool,
                     help="Indicator whether to use input-dependent computation of the variance")
 args = parser.parse_args()
 
-# python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.50 --batch 400 --base_sigma 0.50 --input_dependent True
 
 
 def main():
@@ -219,14 +218,14 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         
         acc.val = acc.val.item()
         
-        if i % 10 == 0:
-            print('Epoch: [{0}][{1}/{2}]\t'
-                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-                epoch, i, len(loader), batch_time=batch_time,
-                data_time=data_time, loss=losses, top1=acc))
+        # if i % 10 == 0:
+        #     print('Epoch: [{0}][{1}/{2}]\t'
+        #           'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+        #           'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+        #           'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+        #           'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
+        #         epoch, i, len(loader), batch_time=batch_time,
+        #         data_time=data_time, loss=losses, top1=acc))
 
     return losses.avg, acc.avg
 
