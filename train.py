@@ -109,7 +109,7 @@ def main():
     scheduler = StepLR(optimizer, step_size=args.lr_step_size, gamma=args.gamma)
 
     for epoch in range(args.epochs):
-        # print(f'Starting epoch {epoch}')
+        print(f'Starting epoch {epoch}')
         before = time.time()
         train_loss, train_acc = train(train_loader,
                                       model,
