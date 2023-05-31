@@ -191,7 +191,9 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         if input_dependent:
             dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
             sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
-            sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
+            # sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
+            sigmas = sigmas.unsqueeze(dim=1).repeat_interleave(num_classes, dim=1).unsqueeze(dim=2).repeat_interleave(
+                spatial_size, dim=2).unsqueeze(dim=3).repeat_interleave(spatial_size, dim=3).cuda()
         else:
             sigmas = base_sigma
         inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
