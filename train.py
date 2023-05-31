@@ -187,7 +187,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         inputs = inputs.to(device)
         labels = labels.type(torch.LongTensor).to(device)
 
-        # start_random = time.time()
+        start_random = time.time()
         if input_dependent:
             dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
             sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
@@ -195,8 +195,8 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         else:
             sigmas = base_sigma
         inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
-        # end_random = time.time()
-        # print(f"Finished randomizing after {end_random-start_random} seconds.")
+        end_random = time.time()
+        print(f"Finished randomizing after {end_random-start_random} seconds.")
 
         # forward + loss
         outputs = model(inputs)
