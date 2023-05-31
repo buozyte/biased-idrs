@@ -135,12 +135,12 @@ def main():
         test_loss, test_acc = test(test_loader,
                                    model,
                                    criterion,
-                                   args.base_sigma,
+                                   used_sigma,
                                    args.rate,
                                    dist_computer,
                                    spatial_size,
                                    num_classes,
-                                   args.input_dependent,
+                                   args.id_augmentation,
                                    norm_const,
                                    device)
         scheduler.step()
@@ -240,7 +240,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
 
 
 def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: float, rate: float,
-         dist_computer: KNNDistComp, spatial_size: int, num_classes: int, input_dependent: bool, norm_const: float,
+         dist_computer: KNNDistComp, spatial_size: int, num_classes: int, input_dependent_aug: bool, norm_const: float,
          device: torch.device):
     """
     Run one epoch of testing.
@@ -253,7 +253,7 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
     :param dist_computer: module to compute the distance to each sample in the training data
     :param spatial_size: dimension/size of the image (height and width)
     :param num_classes: number of possible classes in the data
-    :param input_dependent: indicator whether the randomized smoothing is input dependent or not
+    :param input_dependent_aug:
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
     :return: average loss and accuracy
@@ -269,7 +269,7 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
             inputs = inputs.to(device)
             labels = labels.type(torch.LongTensor).to(device)
 
-            if input_dependent:
+            if input_dependent_aug:
                 dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
                 sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
                 sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
