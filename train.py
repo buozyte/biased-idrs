@@ -22,7 +22,7 @@ parser.add_argument('dataset', type=str, choices=DATASETS)
 parser.add_argument('arch', type=str, choices=ARCHITECTURES)
 parser.add_argument('outdir', type=str,
                     help='folder to save model and training log)')
-parser.add_argument('--workers', default=4, type=int, metavar='N',
+parser.add_argument('--num_workers', default=2, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
@@ -68,9 +68,9 @@ def main():
 
     pin_memory = (args.dataset == "imagenet")
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch,
-                              num_workers=args.workers, pin_memory=pin_memory)
+                              num_workers=args.num_workers, pin_memory=pin_memory)
     test_loader = DataLoader(test_dataset, shuffle=False, batch_size=args.batch,
-                             num_workers=args.workers, pin_memory=pin_memory)
+                             num_workers=args.num_workers, pin_memory=pin_memory)
 
     if args.dataset == 'cifar10':
         spatial_size = 32
