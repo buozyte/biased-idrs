@@ -187,18 +187,16 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         inputs = inputs.to(device)
         labels = labels.type(torch.LongTensor).to(device)
 
-        start_random = time.time()
+        # start_random = time.time()
         if input_dependent:
             dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
             sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
-            # sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
-            sigmas = sigmas.unsqueeze(dim=1).repeat_interleave(num_classes, dim=1).unsqueeze(dim=2).repeat_interleave(
-                spatial_size, dim=2).unsqueeze(dim=3).repeat_interleave(spatial_size, dim=3).cuda()
+            sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
         else:
             sigmas = base_sigma
         inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
-        end_random = time.time()
-        print(f"Finished randomizing after {end_random-start_random} seconds.")
+        # end_random = time.time()
+        # print(f"Finished randomizing after {end_random-start_random} seconds.")
 
         # forward + loss
         outputs = model(inputs)
