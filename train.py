@@ -27,7 +27,7 @@ parser.add_argument('--num_workers', default=2, type=int, metavar='N',
 parser.add_argument('--epochs', default=90, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--batch', default=256, type=int, metavar='N',
-                    help='batchsize (default: 256)')
+                    help='batch size (default: 256)')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
                     help='initial learning rate', dest='lr')
 parser.add_argument('--lr_step_size', type=int, default=30,
@@ -49,8 +49,11 @@ parser.add_argument('--print_freq', default=10, type=int, metavar='N',
 parser.add_argument('--num_nearest', default=20, type=int, help='How many nearest neighbors to use')
 parser.add_argument('--input_dependent', default=False, type=bool,
                     help="Indicator whether to use input-dependent computation of the variance")
+parser.add_argument('--alt_sigma_aug', default=-1, type=float,
+                    help="Alternative sigma to use when doing input dependent smoothing")
+parser.add_argument('--id_augmentation', default=False, type=bool,
+                    help="Indicator whether to use input-dependent gaussian data augmentation")
 args = parser.parse_args()
-
 
 
 def main():
@@ -102,11 +105,16 @@ def main():
         add_model_name = ""
 
     logfile_name = os.path.join(args.outdir, f'log{add_model_name}.txt')
-    init_logfile(logfile_name, "epoch\ttime\tlr\ttrain loss\ttrain acc\ttestloss\ttest acc")
+    init_logfile(logfile_name, "epoch\ttime\tlr\ttrain loss\ttrain acc\ttest loss\ttest acc")
 
     criterion = CrossEntropyLoss().to(device)
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     scheduler = StepLR(optimizer, step_size=args.lr_step_size, gamma=args.gamma)
+
+    if args.input_dependent and args.alt_sigma_aug > -1:
+        used_sigma = args.alt_sigma_aug
+    else:
+        used_sigma = args.base_sigma
 
     for epoch in range(args.epochs):
         print(f'Starting epoch {epoch}')
@@ -115,12 +123,12 @@ def main():
                                       model,
                                       criterion,
                                       optimizer,
-                                      args.base_sigma,
+                                      used_sigma,
                                       args.rate,
                                       dist_computer,
                                       spatial_size,
                                       num_classes,
-                                      args.input_dependent,
+                                      args.id_augmentation,
                                       norm_const,
                                       device,
                                       epoch)
@@ -151,7 +159,7 @@ def main():
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
-          rate: float, dist_computer: KNNDistComp, spatial_size: int, num_classes: int, input_dependent: bool,
+          rate: float, dist_computer: KNNDistComp, spatial_size: int, num_classes: int, input_dependent_aug: bool,
           norm_const: float, device: torch.device, epoch: int):
     """
     Run one epoch of training.
@@ -165,9 +173,10 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     :param dist_computer: module to compute the distance to each sample in the training data
     :param spatial_size: dimension/size of the image (height and width)
     :param num_classes: number of possible classes in the data
-    :param input_dependent: indicator whether the randomized smoothing is input dependent or not
+    :param input_dependent_aug:
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
+    :param epoch:
     :return: average loss and accuracy
     """
     
@@ -188,7 +197,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         labels = labels.type(torch.LongTensor).to(device)
 
         # start_random = time.time()
-        if input_dependent:
+        if input_dependent_aug:
             dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
             sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
             sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
