@@ -1,8 +1,8 @@
 #!/bin/bash
+set -e
 
 conda activate idrs
-cd git
-cd idrs
+cd $HOME/git/idrs
 
 echo "Start training"
 python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.00 --num_workers 2 --batch 400 --base_sigma 0.00
@@ -33,3 +33,5 @@ python certify.py cifar10 trained_models/cifar10/resnet110/noise_1.00/checkpoint
 
 python certify.py cifar10 trained_models/cifar10/resnet110/noise_0.12/checkpoint_id.pth.tar 0.50 data/certify/cifar10/resnet110/noise_0.12/test --skip 20 --batch 400 --input_dependent True
 python certify.py cifar10 trained_models/cifar10/resnet110/noise_0.25/checkpoint_id.pth.tar 0.50 data/certify/cifar10/resnet110/noise_0.25/test --skip 20 --batch 400 --input_dependent True
+
+echo "Finished script"
