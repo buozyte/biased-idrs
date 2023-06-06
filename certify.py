@@ -53,7 +53,6 @@ parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
 args = parser.parse_args()
 
-# python certify.py cifar10 trained_models/cifar10/resnet110/noise_0.50/checkpoint.pth.tar 0.50 data/certify/cifar10/resnet110/noise_0.50/test --skip 100 --batch 400 --input_dependent True
 
 if __name__ == "__main__":
 
@@ -93,7 +92,7 @@ if __name__ == "__main__":
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, args.num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
-                                    num_workers=0, pin_memory=False)
+                                     num_workers=0, pin_memory=False)
         distances = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
             distances[i * 100:(i + 1) * 100] = dist_computer.compute_dist(test_data, 20, args.norm)
@@ -101,7 +100,7 @@ if __name__ == "__main__":
     
         smoothed_classifier = InputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                          sigma=args.base_sigma, distances=distances, rate=args.rate,
-                                                         k=args.num_nearest, m=norm_const, device=device).to(device)
+                                                         m=norm_const, device=device).to(device)
     else:
         smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                      sigma=args.base_sigma, device=device).to(device)

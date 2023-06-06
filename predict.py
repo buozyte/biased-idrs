@@ -97,7 +97,7 @@ if __name__ == "__main__":
         # base_classifier, num_classes, sigma, distances, rate, k, m, device, abstain=-1
         smoothed_classifier = InputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                          sigma=args.base_sigma, distances=distances, rate=args.rate,
-                                                         k=args.num_nearest, m=norm_const, device=device).to(device)
+                                                         m=norm_const, device=device).to(device)
     else:
         smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                      sigma=args.base_sigma, device=device).to(device)

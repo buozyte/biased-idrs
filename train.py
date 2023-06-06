@@ -96,8 +96,7 @@ def main():
 
     if args.input_dependent:
         model = InputDependentRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
-                                           distances=None, rate=args.rate, k=args.num_nearest, m=norm_const,
-                                           device=device).to(device)
+                                           distances=None, rate=args.rate, m=norm_const, device=device).to(device)
         add_model_name = "_id"
     else:
         model = RandSmoothedClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,

@@ -15,7 +15,7 @@ class InputDependentRSClassifier(nn.Module):
     Function defining the variance sigma based on paper: intriguing properties of input-dependent RS.
     """
 
-    def __init__(self, base_classifier, num_classes, sigma, distances, rate, k, m, device, abstain=-1):
+    def __init__(self, base_classifier, num_classes, sigma, distances, rate, m, device, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -25,7 +25,6 @@ class InputDependentRSClassifier(nn.Module):
         :param distances:
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
-        :param k: number of nearest neighbours to consider
         :param device:
         :param abstain: value to be returned when smoothed classifier should abstain
         """
@@ -38,7 +37,6 @@ class InputDependentRSClassifier(nn.Module):
         self.distances = distances
         self.rate = rate
         self.m = m
-        self.k = k
         self.device = device
         self.abstain = abstain
 
@@ -51,7 +49,7 @@ class InputDependentRSClassifier(nn.Module):
         :return: variance w.r.t. current input
         """
 
-        return self.sigma * np.exp(self.rate * (1/self.k) * self.distances[x_index] - self.m)
+        return self.sigma * np.exp(self.rate * (self.distances[x_index] - self.m))
 
     def sample_under_noise(self, x, x_index, n, batch_size):
         """
