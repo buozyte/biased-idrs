@@ -103,7 +103,6 @@ class ResNetCifar(nn.Module):
         else:
             raise ValueError('block_name shoule be Basicblock or Bottleneck')
 
-
         self.inplanes = 16
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, padding=1,
                                bias=False)
