@@ -12,6 +12,7 @@ from knn import KNNDistComp
 from models.architectures import get_architecture
 from models.input_dependent_rs import InputDependentRSClassifier
 from models.random_smooth import RandSmoothedClassifier
+from models.biased_idrs import BiasedInputDependentRSClassifier
 
 parser = argparse.ArgumentParser(description='Certify many examples non-constant sigma')
 parser.add_argument("dataset", choices=DATASETS,
@@ -51,6 +52,8 @@ parser.add_argument('--input_dependent', default=False, type=bool,
                     help="Indicator whether to use input-dependent computation of the variance")
 parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
+parser.add_argument('--biased', default=False, type=bool,
+                    help="Indicator whether to use a biased")
 args = parser.parse_args()
 
 
@@ -60,6 +63,8 @@ if __name__ == "__main__":
     
     if args.input_dependent:
         add_model_type = "_id"
+    elif args.biased:
+        add_model_type = "_biased_id"
     else:
         add_model_type = ""
 
@@ -101,11 +106,30 @@ if __name__ == "__main__":
         smoothed_classifier = InputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                          sigma=args.base_sigma, distances=distances, rate=args.rate,
                                                          m=norm_const, device=device).to(device)
+    elif args.biased:
+        # obtain knn distances of test data
+        knn_computer = KNNDistComp(train_dataset, args.num_workers, device)
+        test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
+                                     num_workers=0, pin_memory=False)
+        oracles = torch.zeros(10000)
+        for i, (test_data, labels) in enumerate(test_dataloader):
+            oracles[i * 100:(i + 1) * 100] = knn_computer.compute_1nn_oracle(test_data, args.norm)
+        oracles = oracles.numpy()
+        oracles[oracles == 0] = -1
+
+        smoothed_classifier = BiasedInputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                                               sigma=args.base_sigma, oracles=oracles, rate=args.rate,
+                                                               m=norm_const, device=device).to(device)
+
     else:
         smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                      sigma=args.base_sigma, device=device).to(device)
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
+
+    if "toy" in args.dataset:
+        train_dataset.visualize_with_classifier(smoothed_classifier, save=False, show=True)
+        test_dataset.visualize_with_classifier(smoothed_classifier, save=False, show=True)
 
     for i in range(args.index_min, args.index_max):
         # only certify every args.skip examples, and stop after args.max examples
@@ -116,14 +140,16 @@ if __name__ == "__main__":
 
         (inputs, label) = test_dataset[i]
 
-        dim = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
-
         before_time = time()
         # certify the prediction of g around x
         inputs = inputs.to(device)
 
         if args.input_dependent:
+            dim = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
             prediction, radius = smoothed_classifier.certify(inputs, i, args.N0, args.N, args.alpha, args.batch, dim,
+                                                             1000)
+        elif args.biased:
+            prediction, radius = smoothed_classifier.certify(inputs, i, args.N0, args.N, args.alpha, args.batch, 0,
                                                              1000)
         else:
             prediction, radius = smoothed_classifier.certify(inputs, args.N0, args.N, args.alpha, args.batch)

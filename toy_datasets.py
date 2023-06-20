@@ -21,12 +21,9 @@ def generate_lin_separable_data(num, high, low, p):
     eval_linear = M * data[:, 0] + C
     data_1 = data[data[:, 1] > eval_linear, :]
     # labels_1 = np.random.binomial(1, p, len(data_1))
-    # labels_1[labels_1 == 0] = -1
     labels_1 = np.ones(len(data_1))
     data_2 = data[data[:, 1] <= eval_linear, :]
     # labels_2 = np.random.binomial(1, 1 - p, len(data_2))
-    # labels_2[labels_2 == 0] = -1
-    # labels_2 = np.ones(len(data_2)) - 2
     labels_2 = np.zeros(len(data_2))
 
     # put data and labels together
@@ -62,7 +59,7 @@ def visualize_dataset(data, labels, ls, show=False, train=True):
         plt.show()
 
 
-def visualize_dataset_with_classifier(data, labels, ls, w_0, w_1, b, show=False, train=True):
+def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=False, file_path="", train=True):
     data_1 = data[labels == 1]
     data_2 = data[labels == 0]
 
@@ -73,7 +70,13 @@ def visualize_dataset_with_classifier(data, labels, ls, w_0, w_1, b, show=False,
     plt.scatter(data_1[:, 0], data_1[:, 1], label="class: 1", s=3)
     plt.scatter(data_2[:, 0], data_2[:, 1], label="class: 0", s=3)
     plt.plot(ls, M * ls + C, 'r-')
-    plt.plot(ls, (-1) * (w_0 * ls + b) / w_1, 'c-')
+
+    xx, yy = np.meshgrid(ls, ls)
+    inputs = np.c_[xx.ravel(), yy.ravel()]
+    outputs = model(torch.from_numpy(inputs).to(torch.float32))
+    _, pred = outputs.topk(1, 1, True, True)
+    pred = pred.t()
+    plt.contourf(xx, yy, pred.reshape(xx.shape), cmap=plt.cm.Spectral, alpha=0.1)
 
     plt.legend(fontsize=14)
     plt.xlabel("x", fontsize=14)
@@ -87,6 +90,11 @@ def visualize_dataset_with_classifier(data, labels, ls, w_0, w_1, b, show=False,
         plt.title("Test dataset", fontsize=16)
     if show:
         plt.show()
+    if save:
+        if train:
+            plt.savefig(f"{file_path}/visual_decision_boundary_train.pdf")
+        else:
+            plt.savefig(f"{file_path}/visual_decision_boundary_test.pdf")
 
 
 class ToyDatasetLinearSeparationTrain(Dataset):
@@ -117,10 +125,10 @@ class ToyDatasetLinearSeparationTrain(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, True)
 
-    def visualize_with_classifier(self, w_0, w_1, b, show=True):
+    def visualize_with_classifier(self, model, save=True, file_path="", show=False):
         ls = np.linspace(self.low, self.high, num=200)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, w_0, w_1, b, show, True)
+        visualize_dataset_with_classifier(self.data, self.labels, ls, model, show, save, file_path, True)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]
@@ -157,10 +165,10 @@ class ToyDatasetLinearSeparationTest(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, False)
 
-    def visualize_with_classifier(self, w_0, w_1, b, show=True):
+    def visualize_with_classifier(self, model, show=False, save=True, file_path=""):
         ls = np.linspace(self.low, self.high, num=200)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, w_0, w_1, b, show, False)
+        visualize_dataset_with_classifier(self.data, self.labels, ls, model, show, save, file_path, False)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]
