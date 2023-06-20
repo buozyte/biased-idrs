@@ -5,6 +5,7 @@ from typing import *
 import torch
 import os
 from torch.utils.data import Dataset
+from toy_datasets import ToyDatasetLinearSeparationTrain, ToyDatasetLinearSeparationTest
 
 # set this environment variable to the location of your imagenet directory if you want to read ImageNet data.
 # make sure your val directory is preprocessed to look like the train directory, e.g. by running this script
@@ -12,7 +13,7 @@ from torch.utils.data import Dataset
 IMAGENET_LOC_ENV = "IMAGENET_DIR"
 
 # list of all datasets
-DATASETS = ["imagenet", "cifar10", "unaugmented_cifar10", "mnist", "unaugmented_mnist"]
+DATASETS = ["imagenet", "cifar10", "unaugmented_cifar10", "mnist", "unaugmented_mnist", "toy_dataset_linear_sep"]
 
 
 def get_dataset(dataset: str, split: str) -> Dataset:
@@ -30,12 +31,16 @@ def get_dataset(dataset: str, split: str) -> Dataset:
         return _mnist(split)
     elif dataset == "unaugmented_mnist":
         return _unaugmented_mnist(split)
+    elif dataset == "toy_dataset_linear_sep":
+        return _toy_dataset_linear_sep(split)
 
 
 def get_num_classes(dataset: str):
     """Return the number of classes in the dataset. """
     if dataset == "imagenet":
         return 1000
+    elif "toy_dataset" in dataset:
+        return 2
     else:
         return 10
 
@@ -120,6 +125,13 @@ def _imagenet(split: str) -> Dataset:
             transforms.ToTensor()
         ])
     return datasets.ImageFolder(subdir, transform)
+
+
+def _toy_dataset_linear_sep(split: str) -> Dataset:
+    if split == "train":
+        return ToyDatasetLinearSeparationTrain(500, -1, 1)
+    elif split == "test":
+        return ToyDatasetLinearSeparationTest(100, -1, 1)
 
 
 class NormalizeLayer(torch.nn.Module):

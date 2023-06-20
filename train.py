@@ -14,7 +14,7 @@ from models.architectures import ARCHITECTURES, get_architecture
 from models.random_smooth import RandSmoothedClassifier
 from models.input_dependent_rs import InputDependentRSClassifier
 from knn import KNNDistComp
-from helper_functions import gaussian_normalization, AverageMeter, accuracy, init_logfile, log
+from helper_functions import gaussian_normalization, AverageMeter, accuracy, toy_accuracy, init_logfile, log
 
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
@@ -68,6 +68,9 @@ def main():
     # --- prepare data ---
     train_dataset = get_dataset(args.dataset, 'train')
     test_dataset = get_dataset(args.dataset, 'test')
+    if "toy" in args.dataset:
+        train_dataset.visualize_itself()
+        test_dataset.visualize_itself()
 
     pin_memory = (args.dataset == "imagenet")
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch,
@@ -83,6 +86,10 @@ def main():
         spatial_size = 28
         num_classes = 1
         norm_const = 1.5
+    elif "toy" in args.dataset:
+        spatial_size = 2
+        num_classes = 2
+        norm_const = 0
     else:
         print("shit happens...")
         spatial_size = 0
@@ -130,7 +137,7 @@ def main():
                                       args.id_augmentation,
                                       norm_const,
                                       device,
-                                      epoch)
+                                      epoch,)
         test_loss, test_acc = test(test_loader,
                                    model,
                                    criterion,
@@ -141,7 +148,7 @@ def main():
                                    num_classes,
                                    args.id_augmentation,
                                    norm_const,
-                                   device)
+                                   device,)
         scheduler.step()
         after = time.time()
 
@@ -155,6 +162,16 @@ def main():
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
         }, os.path.join(args.outdir, f'checkpoint{add_model_name}.pth.tar'))
+
+    # if "toy" in args.dataset:
+    #     # formula: 0 = w_0 * x_1 + w_1 * x_2 + b -> x_2 = -(w_0 * x_1 + b) / w_2
+    #     w_0 = float(list(model.parameters())[0][0][0])
+    #     w_1 = float(list(model.parameters())[0][0][1])
+    #     b = float(list(model.parameters())[1][0])
+    #     print(list(model.parameters()))
+
+    #     train_dataset.visualize_with_classifier(w_0, w_1, b)
+    #     test_dataset.visualize_with_classifier(w_0, w_1, b)
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
@@ -278,8 +295,8 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
 
             # forward + compute accuracy
             outputs = model(inputs)
-            top1 = accuracy(outputs, labels)
-            acc.update(top1[0].cpu().numpy()[0], inputs.size(0))
+            acc1 = accuracy(outputs, labels)
+            acc.update(acc1[0].cpu().numpy()[0], inputs.size(0))
 
             # compute loss + backward
             loss = criterion(outputs, labels)
