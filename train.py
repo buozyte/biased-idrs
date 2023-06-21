@@ -56,6 +56,8 @@ parser.add_argument('--id_augmentation', default=False, type=bool,
                     help="Indicator whether to use input-dependent gaussian data augmentation")
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
+parser.add_argument('--bias_weight', default=0, type=float,
+                    help="Weight of bias")
 args = parser.parse_args()
 
 
@@ -110,8 +112,8 @@ def main():
         add_model_name = "_id"
     elif args.biased:
         model = BiasedInputDependentRSClassifier(base_classifier=base_model, num_classes=num_classes,
-                                                 sigma=args.base_sigma, oracles=None, rate=args.rate, m=norm_const,
-                                                 device=device).to(device)
+                                                 sigma=args.base_sigma, bias_weight=args.bias_weight, oracles=None,
+                                                 rate=args.rate, m=norm_const, device=device).to(device)
         add_model_name = "_biased_id"
     else:
         model = RandSmoothedClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
@@ -143,6 +145,7 @@ def main():
                                       spatial_size,
                                       num_classes,
                                       args.biased,
+                                      args.bias_weight,
                                       args.id_augmentation,
                                       norm_const,
                                       device,
@@ -156,6 +159,7 @@ def main():
                                    spatial_size,
                                    num_classes,
                                    args.biased,
+                                   args.bias_weight,
                                    args.id_augmentation,
                                    norm_const,
                                    device,)
@@ -174,13 +178,13 @@ def main():
         }, os.path.join(args.outdir, f'checkpoint{add_model_name}.pth.tar'))
 
     if "toy" in args.dataset:
-        train_dataset.visualize_with_classifier(model, file_path=args.outdir)
-        test_dataset.visualize_with_classifier(model, file_path=args.outdir)
+        train_dataset.visualize_with_classifier(model, file_path=args.outdir, add_file_name=add_model_name)
+        test_dataset.visualize_with_classifier(model, file_path=args.outdir, add_file_name=add_model_name)
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
           rate: float, dist_computer: KNNDistComp, spatial_size: int, num_classes: int, biased: bool,
-          input_dependent_aug: bool, norm_const: float, device: torch.device, epoch: int):
+          bias_weight: float, input_dependent_aug: bool, norm_const: float, device: torch.device, epoch: int):
     """
     Run one epoch of training.
 
@@ -233,7 +237,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
             bias[:, 0] = bias[:, 0] * orthogonal_vector[0]
             bias[:, 1] = bias[:, 1] * orthogonal_vector[1]
 
-            inputs = inputs + bias + torch.randn_like(inputs, device=device) * sigmas
+            inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
         else:
             inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
 
@@ -273,8 +277,8 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
 
 
 def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: float, rate: float,
-         dist_computer: KNNDistComp, spatial_size: int, num_classes: int, biased: bool, input_dependent_aug: bool,
-         norm_const: float, device: torch.device):
+         dist_computer: KNNDistComp, spatial_size: int, num_classes: int, biased: bool, bias_weight: float,
+         input_dependent_aug: bool, norm_const: float, device: torch.device):
     """
     Run one epoch of testing.
 
@@ -318,7 +322,7 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
                 bias[:, 0] = bias[:, 0] * orthogonal_vector[0]
                 bias[:, 1] = bias[:, 1] * orthogonal_vector[1]
 
-                inputs = inputs + bias + torch.randn_like(inputs, device=device) * sigmas
+                inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
             else:
                 inputs = inputs + torch.randn_like(inputs, device=device) * sigmas
 

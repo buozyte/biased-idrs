@@ -6,9 +6,6 @@ import numpy as np
 
 from certified_radius import input_dependent_certified_radius_given_pb
 
-# python certify.py toy_dataset_linear_sep models/toy/noise_0.12/checkpoint_biased_id.pth.tar 0.12 data/certify/toy/noise_0.12 --skip 1 --batch 500  --biased True
-# python train.py toy_dataset_linear_sep linear_model models/toy/noise_0.12 --batch 500 --base_sigma 0.12 --epochs 25 --biased True
-
 
 # https://pytorch.org/docs/stable/generated/torch.nn.Module.html
 class BiasedInputDependentRSClassifier(nn.Module):
@@ -18,7 +15,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
     Function defining the variance sigma based on paper: intriguing properties of input-dependent RS.
     """
 
-    def __init__(self, base_classifier, num_classes, sigma, oracles, rate, m, device, abstain=-1):
+    def __init__(self, base_classifier, num_classes, sigma, bias_weight, oracles, rate, m, device, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -37,6 +34,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
         self.base_classifier = base_classifier
         self.num_classes = num_classes
         self.sigma = sigma
+        self.bias_weight = bias_weight
         self.oracles = oracles
         self.rate = rate
         self.m = m
@@ -51,7 +49,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
         """
         orthogonal_vector = torch.tensor([-1.0, 1.0])
 
-        return orthogonal_vector * self.oracles[x_index]
+        return self.bias_weight * orthogonal_vector * self.oracles[x_index]
 
     def sigma_id(self, x_index):
         """

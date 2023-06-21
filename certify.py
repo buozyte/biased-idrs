@@ -54,6 +54,8 @@ parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
+parser.add_argument('--bias_weight', default=0, type=float,
+                    help="Weight of bias")
 args = parser.parse_args()
 
 
@@ -111,7 +113,7 @@ if __name__ == "__main__":
         knn_computer = KNNDistComp(train_dataset, args.num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
                                      num_workers=0, pin_memory=False)
-        oracles = torch.zeros(10000)
+        oracles = torch.zeros(100)
         for i, (test_data, labels) in enumerate(test_dataloader):
             oracles[i * 100:(i + 1) * 100] = knn_computer.compute_1nn_oracle(test_data, args.norm)
         oracles = oracles.numpy()
@@ -127,10 +129,7 @@ if __name__ == "__main__":
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
 
-    if "toy" in args.dataset:
-        train_dataset.visualize_with_classifier(smoothed_classifier, save=False, show=True)
-        test_dataset.visualize_with_classifier(smoothed_classifier, save=False, show=True)
-
+    correct_sum = 0
     for i in range(args.index_min, args.index_max):
         # only certify every args.skip examples, and stop after args.max examples
         if i % args.skip != 0:
@@ -160,4 +159,7 @@ if __name__ == "__main__":
         print("{}\t{}\t{}\t{}\t{}\t{}".format(
             i, label, prediction, radius, correct, time_elapsed), file=f, flush=True)
 
+        correct_sum += correct
+
+    print("Total correct:\t{}\t \t \t \t ".format(correct_sum), file=f, flush=True)
     f.close()

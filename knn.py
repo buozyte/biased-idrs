@@ -64,8 +64,7 @@ class KNNDistComp:
         dists = torch.cdist(data.reshape((len(data), -1)),
                             raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
-        sorted_indices = dists.argsort(dim=1).argsort(dim=1)
-        # print(dists.argsort(dim=1).sort(dim=1))
+        sorted_indices = dists.argsort(dim=1)
         return raw_labels[sorted_indices[:, 0]]
 
     def compute_dist(self, data, k, norm=2):

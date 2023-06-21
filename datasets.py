@@ -129,9 +129,9 @@ def _imagenet(split: str) -> Dataset:
 
 def _toy_dataset_linear_sep(split: str) -> Dataset:
     if split == "train":
-        return ToyDatasetLinearSeparationTrain(500, -1, 1)
+        return ToyDatasetLinearSeparationTrain(500, 1, -1)
     elif split == "test":
-        return ToyDatasetLinearSeparationTest(100, -1, 1)
+        return ToyDatasetLinearSeparationTest(100, 1, -1)
 
 
 class NormalizeLayer(torch.nn.Module):
