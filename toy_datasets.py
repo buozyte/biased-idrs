@@ -60,7 +60,10 @@ def visualize_dataset(data, labels, ls, show=False, train=True):
         plt.show()
 
 
-def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=False, file_path="", add_file_name="", train=True):
+def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=False, file_path="", add_file_name="",
+                                      train=True):
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
     data_1 = data[labels == 1]
     data_2 = data[labels == 0]
 
@@ -80,7 +83,7 @@ def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=
 
     xx, yy = np.meshgrid(ls, ls)
     inputs = np.c_[xx.ravel(), yy.ravel()]
-    outputs = model(torch.from_numpy(inputs).to(torch.float32))
+    outputs = model(torch.from_numpy(inputs).to(torch.float32).to(device))
     _, pred = outputs.topk(1, 1, True, True)
     pred = pred.t()
     plt.contourf(xx, yy, pred.reshape(xx.shape), cmap=plt.cm.Spectral, alpha=0.1)

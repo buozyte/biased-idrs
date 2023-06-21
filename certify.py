@@ -120,8 +120,9 @@ if __name__ == "__main__":
         oracles[oracles == 0] = -1
 
         smoothed_classifier = BiasedInputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
-                                                               sigma=args.base_sigma, oracles=oracles, rate=args.rate,
-                                                               m=norm_const, device=device).to(device)
+                                                               sigma=args.base_sigma, bias_weight=args.bias_weight,
+                                                               oracles=oracles, rate=args.rate, m=norm_const,
+                                                               device=device).to(device)
 
     else:
         smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
