@@ -75,6 +75,8 @@ if __name__ == "__main__":
     base_classifier = get_architecture(checkpoint["arch"], args.dataset, device)
 
     # prepare output file
+    if args.biased:
+        args.out_dir = os.path.join(args.out_dir, f'bias_{args.bias_weight}')
     if not os.path.exists(args.out_dir):
         os.makedirs(args.out_dir, exist_ok=True)
     outfile = os.path.join(args.out_dir, f'sigma_{args.base_sigma}{add_model_type}')
@@ -129,6 +131,12 @@ if __name__ == "__main__":
                                                      sigma=args.base_sigma, device=device).to(device)
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
+
+    if "toy" in args.dataset:
+        train_dataset.visualize_with_classifier(smoothed_classifier, bias_weight=args.bias_weight,
+                                                file_path=args.out_dir)
+        test_dataset.visualize_with_classifier(smoothed_classifier, bias_weight=args.bias_weight,
+                                               oracles=oracles, file_path=args.out_dir)
 
     correct_sum = 0
     for i in range(args.index_min, args.index_max):

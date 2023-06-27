@@ -21,11 +21,11 @@ def generate_lin_separable_data(num, high, low, p):
     # assign labels to data according to separation plane with uncertainty p
     eval_linear = M * data[:, 0] + C
     data_1 = data[data[:, 1] > eval_linear, :]
-    labels_1 = np.random.binomial(1, p, len(data_1))
-    # labels_1 = np.ones(len(data_1))
+    # labels_1 = np.random.binomial(1, p, len(data_1))
+    labels_1 = np.ones(len(data_1))
     data_2 = data[data[:, 1] <= eval_linear, :]
-    labels_2 = np.random.binomial(1, 1 - p, len(data_2))
-    # labels_2 = np.zeros(len(data_2))
+    # labels_2 = np.random.binomial(1, 1 - p, len(data_2))
+    labels_2 = np.zeros(len(data_2))
 
     # put data and labels together
     data = np.concatenate((data_1, data_2), axis=0)
@@ -60,8 +60,8 @@ def visualize_dataset(data, labels, ls, show=False, train=True):
         plt.show()
 
 
-def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=False, file_path="", add_file_name="",
-                                      train=True):
+def visualize_dataset_with_classifier(data, labels, ls, model, bias_weight=0, oracles=None, show=False, save=False,
+                                      file_path="", add_file_name="", train=True):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     data_1 = data[labels == 1]
@@ -74,12 +74,35 @@ def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=
     plt.scatter(data_1[:, 0], data_1[:, 1], label="class: 1", s=3, color='blue')
     plt.scatter(data_2[:, 0], data_2[:, 1], label="class: 0", s=3, color='red')
 
-    plt.scatter(data_1[:, 0] + 0.3 * ORTHOGONAL[0], data_1[:, 1] + 0.3 * ORTHOGONAL[1],
-                label="class: 1 (biased)", s=3, color='blue', marker='D', alpha=0.5)
-    plt.scatter(data_2[:, 0] - 0.3 * ORTHOGONAL[0], data_2[:, 1] - 0.3 * ORTHOGONAL[1],
-                label="class: 0 (biased)", s=3, color='red', marker='D', alpha=0.5)
+    if oracles is None and bias_weight > 0:
+        plt.scatter(data_1[:, 0] + bias_weight * ORTHOGONAL[0], data_1[:, 1] + bias_weight * ORTHOGONAL[1],
+                    label="class: 1 (biased)", s=3, color='blue', marker='D', alpha=0.5)
+        plt.scatter(data_2[:, 0] - bias_weight * ORTHOGONAL[0], data_2[:, 1] - bias_weight * ORTHOGONAL[1],
+                    label="class: 0 (biased)", s=3, color='red', marker='D', alpha=0.5)
 
-    plt.plot(ls, M * ls + C, 'r-')
+        for i in range(0, len(data_1)):
+            plt.plot([data_1[i, 0], data_1[i, 0] + bias_weight * ORTHOGONAL[0]],
+                     [data_1[i, 1], data_1[i, 1] + bias_weight * ORTHOGONAL[1]], 'b-', alpha=0.2)
+
+        for i in range(0, len(data_2)):
+            plt.plot([data_2[i, 0], data_2[i, 0] - bias_weight * ORTHOGONAL[0]],
+                     [data_2[i, 1], data_2[i, 1] - bias_weight * ORTHOGONAL[1]], 'r-', alpha=0.2)
+    elif bias_weight > 0:
+        weight = None
+        for name, param in model.named_parameters():
+            if "weight" in name:
+                weight = param.data
+        w = (weight[1, 0] - weight[0, 0]) / (weight[0, 1] - weight[1, 1])
+        for i in range(0, len(data)):
+            oracle = oracles[i]
+            if oracle > 0:
+                plt.plot([data[i, 0], data[i, 0] + bias_weight * oracle * (-w)],
+                         [data[i, 1], data[i, 1] + bias_weight * oracle * 1], 'b-', alpha=0.2)
+            else:
+                plt.plot([data[i, 0], data[i, 0] + bias_weight * oracle * (-w)],
+                         [data[i, 1], data[i, 1] + bias_weight * oracle * 1], 'r-', alpha=0.2)
+
+    plt.plot(ls, M * ls + C, 'k-', alpha=0.1)
 
     xx, yy = np.meshgrid(ls, ls)
     inputs = np.c_[xx.ravel(), yy.ravel()]
@@ -88,7 +111,7 @@ def visualize_dataset_with_classifier(data, labels, ls, model, show=False, save=
     pred = pred.t()
     plt.contourf(xx, yy, pred.reshape(xx.shape), cmap=plt.cm.Spectral, alpha=0.1)
 
-    plt.legend(fontsize=8)
+    plt.legend(fontsize=9)
     plt.xlabel("x", fontsize=14)
     plt.ylabel("y", fontsize=14)
 
@@ -135,10 +158,11 @@ class ToyDatasetLinearSeparationTrain(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, True)
 
-    def visualize_with_classifier(self, model, save=True, file_path="", add_file_name="", show=False):
+    def visualize_with_classifier(self, model, bias_weight=0, save=True, file_path="", add_file_name="", show=False):
         ls = np.linspace(self.low-1, self.high+1, num=300)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, model, show, save, file_path, add_file_name, True)
+        visualize_dataset_with_classifier(self.data, self.labels, ls, model, bias_weight, None, show, save, file_path,
+                                          add_file_name, True)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]
@@ -175,10 +199,12 @@ class ToyDatasetLinearSeparationTest(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, False)
 
-    def visualize_with_classifier(self, model, show=False, save=True, file_path="", add_file_name=""):
+    def visualize_with_classifier(self, model, bias_weight=0, oracles=None, show=False, save=True, file_path="",
+                                  add_file_name=""):
         ls = np.linspace(self.low-1, self.high+1, num=300)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, model, show, save, file_path, add_file_name, False)
+        visualize_dataset_with_classifier(self.data, self.labels, ls, model, bias_weight, oracles, show, save,
+                                          file_path, add_file_name, False)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]

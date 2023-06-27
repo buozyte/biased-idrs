@@ -19,9 +19,6 @@ unset __conda_setup
 conda activate idrs
 cd $HOME/git/idrs
 
-# python certify.py toy_dataset_linear_sep trained_models/toy/noise_0.12/checkpoint_biased_id.pth.tar 0.12 data/certify/toy/noise_0.12 --skip 1 --batch 500 --biased True
-# python train.py toy_dataset_linear_sep linear_model trained_models/toy/noise_0.12 --batch 500 --base_sigma 0.12 --epochs 25 --biased True
-
 
 python train.py toy_dataset_linear_sep linear_model trained_models/toy/noise_0.00/bias_0.0 --num_workers 2 --batch 250 --base_sigma 0.00 --epochs 20 --biased True --bias_weight 0
 python train.py toy_dataset_linear_sep linear_model trained_models/toy/noise_0.12/bias_0.0 --num_workers 2 --batch 250 --base_sigma 0.12 --epochs 20 --biased True --bias_weight 0

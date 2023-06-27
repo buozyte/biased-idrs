@@ -4,7 +4,7 @@ from statsmodels.stats.proportion import proportion_confint
 from torch import nn
 import numpy as np
 
-from certified_radius import input_dependent_certified_radius_given_pb
+# from certified_radius import input_dependent_certified_radius_given_pb
 
 
 # https://pytorch.org/docs/stable/generated/torch.nn.Module.html
@@ -47,7 +47,12 @@ class BiasedInputDependentRSClassifier(nn.Module):
 
         :return:
         """
-        orthogonal_vector = torch.tensor([-1.0, 1.0])
+        weight = None
+        for name, param in self.base_classifier.named_parameters():
+            if "weight" in name:
+                weight = param.data
+        w = (weight[1, 0] - weight[0, 0]) / (weight[0, 1] - weight[1, 1])
+        orthogonal_vector = torch.tensor([-w, 1])
 
         return self.bias_weight * orthogonal_vector * self.oracles[x_index]
 

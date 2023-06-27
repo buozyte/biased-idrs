@@ -178,8 +178,10 @@ def main():
         }, os.path.join(args.outdir, f'checkpoint{add_model_name}.pth.tar'))
 
     if "toy" in args.dataset:
-        train_dataset.visualize_with_classifier(model, file_path=args.outdir, add_file_name=add_model_name)
-        test_dataset.visualize_with_classifier(model, file_path=args.outdir, add_file_name=add_model_name)
+        train_dataset.visualize_with_classifier(model, bias_weight=args.bias_weight, file_path=args.outdir,
+                                                add_file_name=add_model_name)
+        test_dataset.visualize_with_classifier(model, bias_weight=args.bias_weight, file_path=args.outdir,
+                                               add_file_name=add_model_name)
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
