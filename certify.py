@@ -9,10 +9,11 @@ from torch.utils.data import DataLoader
 
 from datasets import get_dataset, DATASETS, get_num_classes
 from knn import KNNDistComp
-from models.architectures import get_architecture
-from models.input_dependent_rs import InputDependentRSClassifier
-from models.random_smooth import RandSmoothedClassifier
-from models.biased_idrs import BiasedInputDependentRSClassifier
+from models.base_models.architectures import get_architecture
+from models.rs import RSClassifier
+from models.biased_rs import BiasedRSClassifier
+from models.input_dependent_rs import IDRSClassifier
+from models.biased_idrs import BiasedIDRSClassifier
 
 parser = argparse.ArgumentParser(description='Certify many examples non-constant sigma')
 parser.add_argument("dataset", choices=DATASETS,
@@ -54,6 +55,8 @@ parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
+parser.add_argument('--num_nearest_bias', default=5, type=int,
+                    help='How many nearest neighbors to use')
 parser.add_argument('--bias_weight', default=0, type=float,
                     help="Weight of bias")
 args = parser.parse_args()
@@ -97,38 +100,60 @@ if __name__ == "__main__":
 
     # create the smoothed classifier g
     num_classes = get_num_classes(args.dataset)
-    if args.input_dependent:
+    if args.input_dependent and args.biased:
+
+        knn_computer = KNNDistComp(train_dataset, args.num_workers, device)
+        test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
+                                     num_workers=0, pin_memory=False)
+        oracles = torch.zeros(10000)
+        for i, (test_data, labels) in enumerate(test_dataloader):
+            oracles[i * 100:(i + 1) * 100] = knn_computer.compute_knn_oracle(test_data, k=args.num_nearest_bias,
+                                                                             norm=args.norm)
+        oracles = oracles.numpy()
+        oracles[oracles == 0] = -1
+
+        test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
+                                     num_workers=0, pin_memory=False)
+        distances = torch.zeros(10000)
+        for i, (test_data, labels) in enumerate(test_dataloader):
+            distances[i * 100:(i + 1) * 100] = knn_computer.compute_dist(test_data, args.num_nearest, args.norm)
+        distances = distances.numpy()
+
+        smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                                   sigma=args.base_sigma, bias_weight=args.bias_weight, oracles=oracles,
+                                                   rate=args.rate, m=norm_const, device=device).to(device)
+    elif args.input_dependent:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, args.num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
                                      num_workers=0, pin_memory=False)
         distances = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
-            distances[i * 100:(i + 1) * 100] = dist_computer.compute_dist(test_data, 20, args.norm)
+            distances[i * 100:(i + 1) * 100] = dist_computer.compute_dist(test_data, args.num_nearest, args.norm)
         distances = distances.numpy()
     
-        smoothed_classifier = InputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
-                                                         sigma=args.base_sigma, distances=distances, rate=args.rate,
-                                                         m=norm_const, device=device).to(device)
+        smoothed_classifier = IDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                             sigma=args.base_sigma, distances=distances, rate=args.rate, m=norm_const,
+                                             device=device).to(device)
     elif args.biased:
         # obtain knn distances of test data
         knn_computer = KNNDistComp(train_dataset, args.num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
                                      num_workers=0, pin_memory=False)
-        oracles = torch.zeros(100)
+        oracles = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
-            oracles[i * 100:(i + 1) * 100] = knn_computer.compute_1nn_oracle(test_data, args.norm)
+            oracles[i * 100:(i + 1) * 100] = knn_computer.compute_knn_oracle(test_data, k=args.num_nearest_bias,
+                                                                             norm=args.norm)
         oracles = oracles.numpy()
         oracles[oracles == 0] = -1
 
-        smoothed_classifier = BiasedInputDependentRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
-                                                               sigma=args.base_sigma, bias_weight=args.bias_weight,
-                                                               oracles=oracles, rate=args.rate, m=norm_const,
-                                                               device=device).to(device)
+        smoothed_classifier = BiasedRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                                 sigma=args.base_sigma, bias_weight=args.bias_weight, oracles=oracles,
+                                                 device=device).to(device)
 
     else:
-        smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
-                                                     sigma=args.base_sigma, device=device).to(device)
+        smoothed_classifier = RSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                           sigma=args.base_sigma, device=device).to(device)
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
 
@@ -152,11 +177,8 @@ if __name__ == "__main__":
         # certify the prediction of g around x
         inputs = inputs.to(device)
 
-        if args.input_dependent:
-            dim = inputs.shape[0] * inputs.shape[1] * inputs.shape[2]
-            prediction, radius = smoothed_classifier.certify(inputs, i, args.N0, args.N, args.alpha, args.batch, dim,
-                                                             1000)
-        elif args.biased:
+        dim = torch.prod(torch.tensor(inputs.shape))
+        if args.input_dependent or args.biased:
             prediction, radius = smoothed_classifier.certify(inputs, i, args.N0, args.N, args.alpha, args.batch, 0,
                                                              1000)
         else:

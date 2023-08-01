@@ -71,6 +71,7 @@ class KNNDistComp:
         """
 
         :param data:
+        :param k:
         :param norm:
         :return:
         """
@@ -84,6 +85,25 @@ class KNNDistComp:
         sorted_indices = dists.argsort(dim=1)
         oracles, _ = torch.mode(raw_labels[sorted_indices[:, 0:k]], dim=1)
         return oracles
+
+    def compute_knn_direction(self, data, k, norm=2):
+        """
+
+        :param data:
+        :param k:
+        :param norm:
+        :return:
+        """
+
+        data = data.to(self.device)
+        raw_data = self._obtain_data().to(self.device)
+
+        dists = torch.cdist(data.reshape((len(data), -1)),
+                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+
+        sorted_indices = dists.argsort(dim=1)
+        data_directions = raw_data[sorted_indices[:, 0:k]]
+        return data_directions
 
     def compute_dist(self, data, k, norm=2):
         """

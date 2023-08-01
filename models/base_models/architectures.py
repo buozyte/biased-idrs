@@ -2,9 +2,9 @@ import torch
 from torchvision.models.resnet import resnet50
 import torch.backends.cudnn as cudnn
 
-from models.cifar_resnet import resnet_cifar, resnet_mnist
-from models.linear_classifier import LinearModel
-from models.toy_model import ToyModel
+from models.base_models.cifar_resnet import resnet_cifar, resnet_mnist
+from models.base_models.linear_classifier import LinearModel
+from models.base_models.toy_model import ToyModel
 from datasets import get_normalize_layer
 
 # resnet50 - the classic ResNet-50, sized for ImageNet

@@ -6,10 +6,10 @@ import torch
 from torch.utils.data import DataLoader
 from datasets import get_dataset, get_num_classes
 from knn import KNNDistComp
-from models.architectures import get_architecture
+from models.base_models.architectures import get_architecture
 from models.biased_idrs import BiasedInputDependentRSClassifier
 from models.input_dependent_rs import InputDependentRSClassifier
-from models.random_smooth import RandSmoothedClassifier
+from models.rs import RandSmoothedClassifier
 
 
 parser = argparse.ArgumentParser(description='Plot')

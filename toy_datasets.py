@@ -21,11 +21,11 @@ def generate_lin_separable_data(num, high, low, p):
     # assign labels to data according to separation plane with uncertainty p
     eval_linear = M * data[:, 0] + C
     data_1 = data[data[:, 1] > eval_linear, :]
-    # labels_1 = np.random.binomial(1, p, len(data_1))
-    labels_1 = np.ones(len(data_1))
+    labels_1 = np.random.binomial(1, p, len(data_1))
+    # labels_1 = np.ones(len(data_1))
     data_2 = data[data[:, 1] <= eval_linear, :]
-    # labels_2 = np.random.binomial(1, 1 - p, len(data_2))
-    labels_2 = np.zeros(len(data_2))
+    labels_2 = np.random.binomial(1, 1 - p, len(data_2))
+    # labels_2 = np.zeros(len(data_2))
 
     # put data and labels together
     data = np.concatenate((data_1, data_2), axis=0)

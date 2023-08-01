@@ -6,11 +6,11 @@ import os
 from datasets import get_dataset, DATASETS, get_num_classes
 from knn import KNNDistComp
 from models.input_dependent_rs import InputDependentRSClassifier
-from models.random_smooth import RandSmoothedClassifier
+from models.rs import RandSmoothedClassifier
 from time import time
 import torch
 import datetime
-from models.architectures import get_architecture
+from models.base_models.architectures import get_architecture
 
 
 parser = argparse.ArgumentParser(description='Certify many examples non-constant sigma')

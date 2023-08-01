@@ -10,12 +10,15 @@ from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import StepLR
 
 from datasets import get_dataset, DATASETS
-from models.architectures import ARCHITECTURES, get_architecture
-from models.random_smooth import RandSmoothedClassifier
-from models.input_dependent_rs import InputDependentRSClassifier
-from models.biased_idrs import BiasedInputDependentRSClassifier
+from models.base_models.architectures import ARCHITECTURES, get_architecture
+from models.rs import RSClassifier
+from models.biased_rs import BiasedRSClassifier
+from models.input_dependent_rs import IDRSClassifier
+from models.biased_idrs import BiasedIDRSClassifier
 from knn import KNNDistComp
 from helper_functions import gaussian_normalization, AverageMeter, accuracy, init_logfile, log
+
+from input_dependent_functions.bias_functions import *
 
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
@@ -47,7 +50,8 @@ parser.add_argument('--gpu', default=None, type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 parser.add_argument('--print_freq', default=10, type=int, metavar='N',
                     help='print frequency (default: 10)')
-parser.add_argument('--num_nearest', default=20, type=int, help='How many nearest neighbors to use')
+parser.add_argument('--num_nearest', default=20, type=int,
+                    help='How many nearest neighbors to use')
 parser.add_argument('--input_dependent', default=False, type=bool,
                     help="Indicator whether to use input-dependent computation of the variance")
 parser.add_argument('--alt_sigma_aug', default=-1, type=float,
@@ -73,9 +77,6 @@ def main():
     # --- prepare data ---
     train_dataset = get_dataset(args.dataset, 'train')
     test_dataset = get_dataset(args.dataset, 'test')
-    # if "toy" in args.dataset:
-    #     train_dataset.visualize_itself()
-    #     test_dataset.visualize_itself()
 
     pin_memory = (args.dataset == "imagenet")
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch,
@@ -106,18 +107,22 @@ def main():
 
     base_model = get_architecture(args.arch, args.dataset, device)
 
-    if args.input_dependent:
-        model = InputDependentRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
-                                           distances=None, rate=args.rate, m=norm_const, device=device).to(device)
+    if args.input_dependent and args.biased:
+        model = BiasedIDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
+                                     bias_weight=args.bias_weight, oracles=None, rate=args.rate, m=norm_const,
+                                     device=device).to(device)
+        add_model_name = "_biased_id"
+    elif args.input_dependent:
+        model = IDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
+                               distances=None, rate=args.rate, m=norm_const, device=device).to(device)
         add_model_name = "_id"
     elif args.biased:
-        model = BiasedInputDependentRSClassifier(base_classifier=base_model, num_classes=num_classes,
-                                                 sigma=args.base_sigma, bias_weight=args.bias_weight, oracles=None,
-                                                 rate=args.rate, m=norm_const, device=device).to(device)
-        add_model_name = "_biased_id"
+        model = BiasedRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
+                                   bias_weight=args.bias_weight, oracles=None, device=device).to(device)
+        add_model_name = "_biased"
     else:
-        model = RandSmoothedClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
-                                       device=device).to(device)
+        model = RSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
+                             device=device).to(device)
         add_model_name = ""
 
     logfile_name = os.path.join(args.outdir, f'log{add_model_name}.txt')
@@ -199,6 +204,8 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     :param dist_computer: module to compute the distance to each sample in the training data
     :param spatial_size: dimension/size of the image (height and width)
     :param num_classes: number of possible classes in the data
+    :param biased:
+    :param bias_weight:
     :param input_dependent_aug:
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
@@ -231,13 +238,8 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
             sigmas = base_sigma
 
         if biased:
-            bias = labels.clone()
-            bias[bias == 0] = -1
-            bias = bias.unsqueeze(dim=1).repeat_interleave(2, dim=1)
-
-            orthogonal_vector = [-1, 1]
-            bias[:, 0] = bias[:, 0] * orthogonal_vector[0]
-            bias[:, 1] = bias[:, 1] * orthogonal_vector[1]
+            orthogonal_vector = torch.tensor([-1, 1])
+            bias = linear_bias_train(labels, orthogonal_vector)
 
             inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
         else:
@@ -316,13 +318,8 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
                 sigmas = base_sigma
 
             if biased:
-                bias = labels.clone()
-                bias[bias == 0] = -1
-                bias = bias.unsqueeze(dim=1).repeat_interleave(2, dim=1)
-
-                orthogonal_vector = [-1, 1]
-                bias[:, 0] = bias[:, 0] * orthogonal_vector[0]
-                bias[:, 1] = bias[:, 1] * orthogonal_vector[1]
+                orthogonal_vector = torch.tensor([-1, 1])
+                bias = linear_bias_train(labels, orthogonal_vector)
 
                 inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
             else:

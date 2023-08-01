@@ -1,14 +1,16 @@
-import torch
 from scipy.stats import binom_test
 from statsmodels.stats.proportion import proportion_confint
 from torch import nn
 import numpy as np
 
+from input_dependent_functions.bias_functions import *
+# from input_dependent_functions.variance_functions import *
+
 # from certified_radius import input_dependent_certified_radius_given_pb
 
 
 # https://pytorch.org/docs/stable/generated/torch.nn.Module.html
-class BiasedInputDependentRSClassifier(nn.Module):
+class BiasedIDRSClassifier(nn.Module):
     """
     Define a biased input-dependent randomly smoothed classifier based on a chosen base classifier.
     Value of variance depends on current input variable x.
@@ -22,6 +24,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
         :param base_classifier: a base classifier
         :param num_classes: number of possible classes
         :param sigma: base value of variance
+        :param bias_weight:
         :param oracles:
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
@@ -42,7 +45,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
         self.abstain = abstain
 
     # currently static for testing bias function for specific case (data linearly separable)
-    def bias_id(self, x_index):
+    def bias_id_linear(self, x_index):
         """
 
         :return:
@@ -65,8 +68,7 @@ class BiasedInputDependentRSClassifier(nn.Module):
         :return: variance w.r.t. current input
         """
 
-        # return self.sigma * np.exp(self.rate * (self.distances[x_index] - self.m))
-        return self.sigma
+        return self.sigma * np.exp(self.rate * (self.distances[x_index] - self.m))
 
     def sample_under_noise(self, x, x_index, n, batch_size):
         """
@@ -93,10 +95,10 @@ class BiasedInputDependentRSClassifier(nn.Module):
 
                 # create tensor containing n times the sample x
                 repeat_x_n_times = x.repeat(current_batch, 1)
-                bias = self.bias_id(x_index).repeat(current_batch, 1)
+                bias = bias_linear_certify(x_index, self.oracles, self.base_classifier).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
-                noise = bias + torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)
+                noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)
                 perturbed_predictions = self.forward(repeat_x_n_times + noise)
 
                 # predicted class for one sample = index of highest value
