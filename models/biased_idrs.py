@@ -1,10 +1,11 @@
 from scipy.stats import binom_test
 from statsmodels.stats.proportion import proportion_confint
+import torch
 from torch import nn
 import numpy as np
 
-from input_dependent_functions.bias_functions import *
-# from input_dependent_functions.variance_functions import *
+from input_dependent_functions import bias_functions as bf
+from input_dependent_functions import variance_functions as vf
 
 # from certified_radius import input_dependent_certified_radius_given_pb
 
@@ -17,18 +18,20 @@ class BiasedIDRSClassifier(nn.Module):
     Function defining the variance sigma based on paper: intriguing properties of input-dependent RS.
     """
 
-    def __init__(self, base_classifier, num_classes, sigma, bias_weight, oracles, rate, m, device, abstain=-1):
+    def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None, bias_weight=1, distances=None, rate=0,
+                 m=0, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
         :param base_classifier: a base classifier
         :param num_classes: number of possible classes
         :param sigma: base value of variance
-        :param bias_weight:
-        :param oracles:
+        :param device: device for device handling
+        :param oracles: output oracle for each sample based on the k nearest neighbours
+        :param bias_weight: "weight" of the bias
+        :param distances: mean distances for every sample to its k nearest neighbours
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
-        :param device:
         :param abstain: value to be returned when smoothed classifier should abstain
         """
 
@@ -37,38 +40,43 @@ class BiasedIDRSClassifier(nn.Module):
         self.base_classifier = base_classifier
         self.num_classes = num_classes
         self.sigma = sigma
+        self.device = device
+
+        self.bias_func = bias_func
+        self.variance_func = variance_func
         self.bias_weight = bias_weight
         self.oracles = oracles
         self.rate = rate
         self.m = m
-        self.device = device
         self.abstain = abstain
 
-    # currently static for testing bias function for specific case (data linearly separable)
-    def bias_id_linear(self, x_index):
+    def bias_id(self, x_index):
         """
+        Compute the bias based on the chosen bias function and the according parameters.
 
-        :return:
+        :param x_index: index of the current point
+        :return: bias w.r.t. current input
         """
-        weight = None
-        for name, param in self.base_classifier.named_parameters():
-            if "weight" in name:
-                weight = param.data
-        w = (weight[1, 0] - weight[0, 0]) / (weight[0, 1] - weight[1, 1])
-        orthogonal_vector = torch.tensor([-w, 1])
-
-        return self.bias_weight * orthogonal_vector * self.oracles[x_index]
+        
+        if self.bias_func is None or self.bias_func == "":
+            return 0
+        
+        if self.bias_func == "mu_toy":
+            return bf.mu_toy(self.oracles, self.bias_weight, x_index, self.base_classifier)
 
     def sigma_id(self, x_index):
         """
-        Input-dependent function to compute the variance for the sampling based on the k-nearest neighbours..
-        Based on function proposed in: intriguing properties of input-dependent RS
+        Compute the varaince based on the chosen variance function and the according parameters.
 
         :param x_index: index of the current point
         :return: variance w.r.t. current input
         """
 
-        return self.sigma * np.exp(self.rate * (self.distances[x_index] - self.m))
+        if self.variance_func is None or self.variance_func == "":
+            return self.sigma
+        
+        if self.variance_func == "sigma_knn":
+            return vf.sigma_knn(self.sigma, self.rate, self.m, self.distances, x_index)
 
     def sample_under_noise(self, x, x_index, n, batch_size):
         """
@@ -95,7 +103,7 @@ class BiasedIDRSClassifier(nn.Module):
 
                 # create tensor containing n times the sample x
                 repeat_x_n_times = x.repeat(current_batch, 1)
-                bias = bias_linear_certify(x_index, self.oracles, self.base_classifier).repeat(current_batch, 1)
+                bias = self.bias_id(x_index, self.oracles, self.base_classifier).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)
@@ -158,8 +166,8 @@ class BiasedIDRSClassifier(nn.Module):
         :param n: number of samples to estimate a lower bound on the probability for the class (p_a)
         :param alpha: probability that function will return a class other than g(x)
         :param batch_size: size of the batches in which the evaluation should be performed
-        :param dim:
-        :param num_steps:
+        :param dim: dimension of input data space
+        :param num_steps: number of steps to take in computation of certified radius
         :return: tuple of predicted class of input and according robust radius
         """
 

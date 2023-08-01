@@ -3,13 +3,15 @@ import torch
 
 def gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device):
     """
+    Normalization methods for the input data.
+    (Note: very time consuming)
 
-    :param inputs:
-    :param sigmas:
-    :param num_channels:
-    :param spatial_size:
-    :param device:
-    :return:
+    :param inputs: inputs to be normalized
+    :param sigmas: set of input-dependent sigmas for each input
+    :param num_channels: number of channels (in picture)
+    :param spatial_size: spatial size of input (i.e. height/width of picture)
+    :param device: device for device handling
+    :return: normalized inputs
     """
 
     sigmas_2d = sigmas.unsqueeze(dim=1).repeat_interleave(num_channels, dim=1).to(device)
@@ -21,17 +23,31 @@ def gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device):
 
 
 class AverageMeter(object):
-    """Computes and stores the average and current value"""
+    """
+    Compute and store the average and current value.
+    """
+    
     def __init__(self):
         self.reset()
 
     def reset(self):
+        """
+        Reset all values to 0.
+        """
+
         self.val = 0
         self.avg = 0
         self.sum = 0
         self.count = 0
 
     def update(self, val, n=1):
+        """
+        Update the average value based on the new value
+
+        :param val: new value
+        :param n: number of times newest value is added
+        """
+        
         self.val = val
         self.sum += val * n
         self.count += n
@@ -39,7 +55,10 @@ class AverageMeter(object):
 
 
 def toy_accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    """
+    Compute the accuracy over the k top predictions for the specified values of k for the toy example.
+    """
+    
     with torch.no_grad():
         batch_size = target.size(0)
 
@@ -54,7 +73,10 @@ def toy_accuracy(output, target, topk=(1,)):
 
 
 def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    """
+    Compute the accuracy over the k top predictions for the specified values of k.
+    """
+    
     with torch.no_grad():
         maxk = max(topk)
         batch_size = target.size(0)
@@ -71,12 +93,26 @@ def accuracy(output, target, topk=(1,)):
 
 
 def init_logfile(filename: str, text: str):
+    """
+    Initialize log file and add given text.
+
+    :param filename: filename for the logfile
+    :param text: text to be added
+    """
+    
     f = open(filename, 'w')
     f.write(text+"\n")
     f.close()
 
 
 def log(filename: str, text: str):
+    """
+    Add given text to logfile.
+
+    :param filename: filename of the logfile
+    :param text: text to be added
+    """
+
     f = open(filename, 'a')
     f.write(text+"\n")
     f.close()

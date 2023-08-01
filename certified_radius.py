@@ -7,15 +7,16 @@ from rpy2.robjects.packages import importr
 
 def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r_computer=None, safe_option=False):
     """
+    Computation of the certified radius.
 
-    :param sigma_0:
-    :param r:
-    :param dim:
-    :param p_b:
-    :param num_steps:
-    :param r_computer:
-    :param safe_option:
-    :return:
+    :param sigma_0: base sigma
+    :param r: semi-elasticity constant for chosen sigma function
+    :param dim: dimension of the input data space
+    :param p_b: certain probability (see paper/expose)
+    :param num_steps: number of steps to take in the computation in the radius
+    :param r_computer: ?
+    :param safe_option: indicator wether to compute the largest radius for both (</>) cases (or only for one)
+    :return: certified radius for the current point
     """
 
     numpy2ri.activate()
@@ -40,7 +41,7 @@ def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r
     loc_xi_bigger = np.zeros(len(dists))
     start = time.time()
 
-    # r_computer.qchisq(probabilities [array], degrees of freedom, non-centrality parameter
+    # r_computer.qchisq(probabilities [array], degrees of freedom, non-centrality parameter)
     #    -> compute value of chi squared quantile function
     loc_radii[i] = np.asarray(
         r_computer.qchisq(p_b, dim, sigma_0 ** 2 / (sigma_0 ** 2 - true_sigmas[i] ** 2) ** 2 * dists[i] ** 2))
@@ -123,5 +124,4 @@ def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r
 
     numpy2ri.deactivate()
     end = time.time()
-    # print(end - start)
     return certified_radius

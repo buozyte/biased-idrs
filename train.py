@@ -9,16 +9,15 @@ from torch.optim import SGD, Optimizer
 from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import StepLR
 
-from datasets import get_dataset, DATASETS
+from datasets import get_dataset, get_num_classes, DATASETS
 from models.base_models.architectures import ARCHITECTURES, get_architecture
 from models.rs import RSClassifier
-from models.biased_rs import BiasedRSClassifier
 from models.input_dependent_rs import IDRSClassifier
 from models.biased_idrs import BiasedIDRSClassifier
+from input_dependent_functions.bias_functions import *
+from input_dependent_functions.variance_functions import VARIANCE_FUNCTIONS
 from knn import KNNDistComp
 from helper_functions import gaussian_normalization, AverageMeter, accuracy, init_logfile, log
-
-from input_dependent_functions.bias_functions import *
 
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
@@ -50,25 +49,39 @@ parser.add_argument('--gpu', default=None, type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 parser.add_argument('--print_freq', default=10, type=int, metavar='N',
                     help='print frequency (default: 10)')
-parser.add_argument('--num_nearest', default=20, type=int,
-                    help='How many nearest neighbors to use')
-parser.add_argument('--input_dependent', default=False, type=bool,
-                    help="Indicator whether to use input-dependent computation of the variance")
 parser.add_argument('--alt_sigma_aug', default=-1, type=float,
                     help="Alternative sigma to use when doing input dependent smoothing")
-parser.add_argument('--id_augmentation', default=False, type=bool,
+parser.add_argument('--gaussian_augmentation', default=False, type=bool,
                     help="Indicator whether to use input-dependent gaussian data augmentation")
+# variance
+parser.add_argument('--id_var', default=False, type=bool,
+                    help="Indicator whether to use input-dependent computation of the variance")
+parser.add_argument('--num_nearest', default=20, type=int,
+                    help='How many nearest neighbors to use')
+parser.add_argument('--var_func', default=None, type=str, choices=VARIANCE_FUNCTIONS,
+                    help='Choice for the variance function to be used')
+# bias
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
-parser.add_argument('--bias_weight', default=0, type=float,
+parser.add_argument('--bias_weight', default=1, type=float,
                     help="Weight of bias")
+parser.add_argument('--bias_func', default=None, type=str, choices=BIAS_FUNCTIONS,
+                    help='Choice for the bias function to be used')
 args = parser.parse_args()
 
 
+# TODO: add simple way to include other bias function in training (currently unsure which option is the best)
+# NOTE: normal rs and idrs can be defined via biased idrs (either leaving both functions or only the bias function as None)
 def main():
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 
+    if args.biased:
+        # args.out_dir = os.path.join(args.out_dir, f'bias_{args.bias_weight}')
+        if args.bias_func is not None:
+            args.out_dir = os.path.join(args.out_dir, f'{args.bias_func}')
+        if args.var_func is not None:
+            args.out_dir = os.path.join(args.out_dir, f'{args.var_func}')
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir, exist_ok=True)
 
@@ -77,6 +90,7 @@ def main():
     # --- prepare data ---
     train_dataset = get_dataset(args.dataset, 'train')
     test_dataset = get_dataset(args.dataset, 'test')
+    num_classes = get_num_classes(args.dataset)
 
     pin_memory = (args.dataset == "imagenet")
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=args.batch,
@@ -86,15 +100,15 @@ def main():
 
     if args.dataset == 'cifar10':
         spatial_size = 32
-        num_classes = 3
+        num_channels = 3
         norm_const = 5
     elif args.dataset == 'mnist':
         spatial_size = 28
-        num_classes = 1
+        num_channels = 1
         norm_const = 1.5
     elif "toy" in args.dataset:
         spatial_size = 2
-        num_classes = 2
+        num_channels = 0
         norm_const = 0
     else:
         print("shit happens...")
@@ -107,19 +121,15 @@ def main():
 
     base_model = get_architecture(args.arch, args.dataset, device)
 
-    if args.input_dependent and args.biased:
+    if args.biased:
         model = BiasedIDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
-                                     bias_weight=args.bias_weight, oracles=None, rate=args.rate, m=norm_const,
-                                     device=device).to(device)
+                                     device=device, bias_func=args.bias_func, variance_func=args.var_func,
+                                     bias_weight=args.bias_weight, rate=args.rate, m=norm_const).to(device)
         add_model_name = "_biased_id"
-    elif args.input_dependent:
+    elif args.id_var:
         model = IDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
                                distances=None, rate=args.rate, m=norm_const, device=device).to(device)
         add_model_name = "_id"
-    elif args.biased:
-        model = BiasedRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
-                                   bias_weight=args.bias_weight, oracles=None, device=device).to(device)
-        add_model_name = "_biased"
     else:
         model = RSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
                              device=device).to(device)
@@ -132,7 +142,7 @@ def main():
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     scheduler = StepLR(optimizer, step_size=args.lr_step_size, gamma=args.gamma)
 
-    if args.input_dependent and args.alt_sigma_aug > -1:
+    if args.alt_sigma_aug > -1:
         used_sigma = args.alt_sigma_aug
     else:
         used_sigma = args.base_sigma
@@ -148,10 +158,10 @@ def main():
                                       args.rate,
                                       dist_computer,
                                       spatial_size,
-                                      num_classes,
+                                      num_channels,
                                       args.biased,
                                       args.bias_weight,
-                                      args.id_augmentation,
+                                      args.gaussian_augmentation,
                                       norm_const,
                                       device,
                                       epoch,)
@@ -162,10 +172,10 @@ def main():
                                    args.rate,
                                    dist_computer,
                                    spatial_size,
-                                   num_classes,
+                                   num_channels,
                                    args.biased,
                                    args.bias_weight,
-                                   args.id_augmentation,
+                                   args.gaussian_augmentation,
                                    norm_const,
                                    device,)
         scheduler.step()
@@ -190,8 +200,8 @@ def main():
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,
-          rate: float, dist_computer: KNNDistComp, spatial_size: int, num_classes: int, biased: bool,
-          bias_weight: float, input_dependent_aug: bool, norm_const: float, device: torch.device, epoch: int):
+          rate: float, dist_computer: KNNDistComp, spatial_size: int, num_channels: int, biased: bool,
+          bias_weight: float, gaussian_aug: bool, norm_const: float, device: torch.device, epoch: int):
     """
     Run one epoch of training.
 
@@ -203,13 +213,13 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     :param rate: semi-elasticity constant (for chosen sigma function)
     :param dist_computer: module to compute the distance to each sample in the training data
     :param spatial_size: dimension/size of the image (height and width)
-    :param num_classes: number of possible classes in the data
-    :param biased:
-    :param bias_weight:
-    :param input_dependent_aug:
+    :param num_channels: number of channels in the data
+    :param biased: indicator whether a bias should be used
+    :param bias_weight: "weight" of the bias
+    :param gaussian_aug: indicator wether a gaussian augmentation w.r.t. input-dependency should be performed
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
-    :param epoch:
+    :param epoch: current epoch
     :return: average loss and accuracy
     """
     
@@ -230,16 +240,16 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         labels = labels.type(torch.LongTensor).to(device)
 
         # start_random = time.time()
-        if input_dependent_aug:
+        if gaussian_aug:
             dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
             sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
-            sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
+            sigmas = gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device)
         else:
             sigmas = base_sigma
 
         if biased:
             orthogonal_vector = torch.tensor([-1, 1])
-            bias = linear_bias_train(labels, orthogonal_vector)
+            bias = mu_toy_train(labels, orthogonal_vector)
 
             inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
         else:
@@ -281,8 +291,8 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
 
 
 def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: float, rate: float,
-         dist_computer: KNNDistComp, spatial_size: int, num_classes: int, biased: bool, bias_weight: float,
-         input_dependent_aug: bool, norm_const: float, device: torch.device):
+         dist_computer: KNNDistComp, spatial_size: int, num_channels: int, biased: bool, bias_weight: float,
+         gaussian_aug: bool, norm_const: float, device: torch.device):
     """
     Run one epoch of testing.
 
@@ -293,8 +303,10 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
     :param rate: semi-elasticity constant (for chosen sigma function)
     :param dist_computer: module to compute the distance to each sample in the training data
     :param spatial_size: dimension/size of the image (height and width)
-    :param num_classes: number of possible classes in the data
-    :param input_dependent_aug:
+    :param num_channels: number of channels in the data
+    :param biased: indicator whether a bias should be used
+    :param bias_weight: "weight" of the bias
+    :param gaussian_aug: indicator wether a gaussian augmentation w.r.t. input-dependency should be performed
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
     :return: average loss and accuracy
@@ -310,16 +322,16 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
             inputs = inputs.to(device)
             labels = labels.type(torch.LongTensor).to(device)
 
-            if input_dependent_aug:
+            if gaussian_aug:
                 dists = dist_computer.compute_dist(inputs, k=args.num_nearest)
                 sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
-                sigmas = gaussian_normalization(inputs, sigmas, num_classes, spatial_size, device)
+                sigmas = gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device)
             else:
                 sigmas = base_sigma
 
             if biased:
                 orthogonal_vector = torch.tensor([-1, 1])
-                bias = linear_bias_train(labels, orthogonal_vector)
+                bias = mu_toy_train(labels, orthogonal_vector)
 
                 inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
             else:

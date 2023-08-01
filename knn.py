@@ -9,9 +9,11 @@ class KNNDistComp:
 
     def __init__(self, main_data, num_workers, device):
         """
-        :param main_data:
-        :param num_workers:
-        :param device:
+        Init KNN computer
+        
+        :param main_data: base data for the computation of the k nearest neighbours
+        :param num_workers: number of workers to be used
+        :param device: device for device handling
         """
 
         self.main_data = main_data
@@ -25,8 +27,9 @@ class KNNDistComp:
 
     def _obtain_data(self):
         """
+        Set parameters for data objects and push them to correct device.
 
-        :return: obtain the
+        :return: correct data
         """
 
         data = None
@@ -37,8 +40,9 @@ class KNNDistComp:
 
     def _obtain_data_with_labels(self):
         """
+        Set parameters for data and labels objects and push them to correct device.
 
-        :return: obtain the
+        :return: correct data and labels
         """
 
         data = None
@@ -52,10 +56,11 @@ class KNNDistComp:
 
     def compute_1nn_oracle(self, data, norm=2):
         """
+        Compute an oracle for the label of each data point based on the label of the nearest neighbour (w.r.t. the main data).
 
-        :param data:
-        :param norm:
-        :return:
+        :param data: input for which the distances should be computed
+        :param norm: definition of the used lp norm
+        :return: oracle for labels
         """
 
         data = data.to(self.device)
@@ -69,11 +74,12 @@ class KNNDistComp:
 
     def compute_knn_oracle(self, data, k=5, norm=2):
         """
+        Compute an oracle for the label of each data point based on the labels of the k nearest neighbours (w.r.t. the main data).
 
-        :param data:
-        :param k:
-        :param norm:
-        :return:
+        :param data: input for which the distances should be computed
+        :param k: number of nearest neighbours to be considered
+        :param norm: definition of the used lp norm
+        :return: oracle for labels
         """
 
         data = data.to(self.device)
@@ -86,13 +92,14 @@ class KNNDistComp:
         oracles, _ = torch.mode(raw_labels[sorted_indices[:, 0:k]], dim=1)
         return oracles
 
-    def compute_knn_direction(self, data, k, norm=2):
+    def compute_knns(self, data, k, norm=2):
         """
+        Compute the k nearest neighbours in the main data for each data point
 
-        :param data:
-        :param k:
-        :param norm:
-        :return:
+        :param data: input for which the distances should be computed
+        :param k: number of nearest neighbours to be considered
+        :param norm: definition of the used lp norm
+        :return: set of nearest neighbours
         """
 
         data = data.to(self.device)
@@ -102,16 +109,17 @@ class KNNDistComp:
                             raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         sorted_indices = dists.argsort(dim=1)
-        data_directions = raw_data[sorted_indices[:, 0:k]]
-        return data_directions
+        knns = raw_data[sorted_indices[:, :k]]
+        return knns
 
     def compute_dist(self, data, k, norm=2):
         """
+        Compute the mean distance of each data point to its k nearest neighbours (w.r.t. the main data).
 
         :param data: input for which the distances should be computed
         :param k: number of nearest neighbours to be considered
         :param norm: definition of the used lp norm
-        :return: mean of the distances to the k nearest neighbours for each element in `data`
+        :return: mean distance
         """
 
         data = data.to(self.device)

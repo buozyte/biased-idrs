@@ -22,10 +22,10 @@ class IDRSClassifier(nn.Module):
         :param base_classifier: a base classifier
         :param num_classes: number of possible classes
         :param sigma: base value of variance
-        :param distances:
+        :param distances: mean distances for every sample to its k nearest neighbours
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
-        :param device:
+        :param device: device for device handling
         :param abstain: value to be returned when smoothed classifier should abstain
         """
 
@@ -138,8 +138,8 @@ class IDRSClassifier(nn.Module):
         :param n: number of samples to estimate a lower bound on the probability for the class (p_a)
         :param alpha: probability that function will return a class other than g(x)
         :param batch_size: size of the batches in which the evaluation should be performed
-        :param dim:
-        :param num_steps:
+        :param dim: dimension of input data space
+        :param num_steps: number of steps to take in computation of certified radius
         :return: tuple of predicted class of input and according robust radius
         """
 

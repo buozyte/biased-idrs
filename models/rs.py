@@ -13,6 +13,7 @@ class RSClassifier(nn.Module):
     def __init__(self, base_classifier, num_classes, sigma, device, abstain=-1):
         """
         Initialize the randomly smoothed classifier
+        
         :param base_classifier: a base classifier
         :param num_classes: number of possible classes
         :param sigma: parameter used to define the variance in a normal distribution
@@ -31,6 +32,7 @@ class RSClassifier(nn.Module):
     def sample_under_noise(self, x, n, batch_size):
         """
         Compute the class counts of the predictions of n perturbed inputs based on the base classifier.
+        
         :param x: current input (shape: [1, channels, image_width, image_height])
         :param n: number of samples
         :param batch_size: size of the batches in which the evaluation should be performed
@@ -68,6 +70,7 @@ class RSClassifier(nn.Module):
     def predict(self, x, n, alpha, batch_size):
         """
         Evaluate the smoothed classifier g (based on the base classifier) at x.
+        
         :param x: current input (shape: [1, channels, image_width, image_height])
         :param n: number of samples
         :param alpha: probability that function will return a class other than g(x)
@@ -106,6 +109,7 @@ class RSClassifier(nn.Module):
     def certify(self, x, n_0, n, alpha, batch_size):
         """
         Certify the robustness of the smoothed classifier g (based on f) around x
+        
         :param x: current input (shape: [1, channels, image_width, image_height])
         :param n_0: number of samples to estimate the class (c_a)
         :param n: number of samples to estimate a lower bound on the probability for the class (p_a)
@@ -133,6 +137,7 @@ class RSClassifier(nn.Module):
     def forward(self, x):
         """
         Generate and classify the perturbed samples x using the base classifier.
+        
         :param x: current input (shape: [batch_size, channels, image_width, image_height])
         :return: evaluation of the perturbed input samples
         """

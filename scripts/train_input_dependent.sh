@@ -1,24 +1,11 @@
 #!/bin/bash
 set -e
 
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/nfs/homedirs/buozyte/miniconda3/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/nfs/homedirs/buozyte/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "/nfs/homedirs/buozyte/miniconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/nfs/homedirs/buozyte/miniconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
+# reminder: sbash needs shell config -> for conda
 
 conda activate idrs
 cd $HOME/git/idrs
 
-python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.12 --num_workers 2 --batch 400 --base_sigma 0.12 --input_dependent True --alt_sigma_aug 0.126
-python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.25 --num_workers 2 --batch 400 --base_sigma 0.25 --input_dependent True --alt_sigma_aug 0.263
-python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.50 --num_workers 2 --batch 400 --base_sigma 0.50 --input_dependent True --alt_sigma_aug 0.53
+python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.12 --num_workers 2 --batch 400 --base_sigma 0.12 --id_var True --alt_sigma_aug 0.126
+python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.25 --num_workers 2 --batch 400 --base_sigma 0.25 --id_var True --alt_sigma_aug 0.263
+python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.50 --num_workers 2 --batch 400 --base_sigma 0.50 --id_var True --alt_sigma_aug 0.53
