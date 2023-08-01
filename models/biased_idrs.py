@@ -62,7 +62,7 @@ class BiasedIDRSClassifier(nn.Module):
             return 0
         
         if self.bias_func == "mu_toy":
-            return bf.mu_toy(self.oracles, self.bias_weight, x_index, self.base_classifier)
+            return bf.mu_toy(self.oracles, self.bias_weight, x_index, self.base_classifier, self.device)
 
     def sigma_id(self, x_index):
         """
@@ -102,8 +102,10 @@ class BiasedIDRSClassifier(nn.Module):
                 remaining_samples -= current_batch
 
                 # create tensor containing n times the sample x
+                # for toy example:
                 repeat_x_n_times = x.repeat(current_batch, 1)
-                bias = self.bias_id(x_index, self.oracles, self.base_classifier).repeat(current_batch, 1)
+                # repeat_x_n_times = x.repeat(current_batch, 1, 1, 1)
+                bias = self.bias_id(x_index).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)

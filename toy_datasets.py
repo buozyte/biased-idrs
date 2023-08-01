@@ -93,6 +93,7 @@ def visualize_dataset_with_classifier(data, labels, ls, model, bias_weight=0, or
             if "weight" in name:
                 weight = param.data
         w = (weight[1, 0] - weight[0, 0]) / (weight[0, 1] - weight[1, 1])
+        w = w.cpu()
         for i in range(0, len(data)):
             oracle = oracles[i]
             if oracle > 0:
@@ -108,7 +109,7 @@ def visualize_dataset_with_classifier(data, labels, ls, model, bias_weight=0, or
     inputs = np.c_[xx.ravel(), yy.ravel()]
     outputs = model(torch.from_numpy(inputs).to(torch.float32).to(device))
     _, pred = outputs.topk(1, 1, True, True)
-    pred = pred.t()
+    pred = pred.t().cpu()
     plt.contourf(xx, yy, pred.reshape(xx.shape), cmap=plt.cm.Spectral, alpha=0.1)
 
     plt.legend(fontsize=9)

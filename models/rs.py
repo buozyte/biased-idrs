@@ -53,7 +53,9 @@ class RSClassifier(nn.Module):
                 remaining_samples -= current_batch
 
                 # create tensor containing n times the sample x
-                repeat_x_n_times = x.repeat(current_batch, 1)  # , 1, 1)
+                # for toy example:
+                # repeat_x_n_times = x.repeat(current_batch, 1)
+                repeat_x_n_times = x.repeat(current_batch, 1, 1, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma

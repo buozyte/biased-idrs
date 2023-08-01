@@ -79,9 +79,9 @@ def main():
     if args.biased:
         # args.out_dir = os.path.join(args.out_dir, f'bias_{args.bias_weight}')
         if args.bias_func is not None:
-            args.out_dir = os.path.join(args.out_dir, f'{args.bias_func}')
+            args.outdir = os.path.join(args.outdir, f'{args.bias_func}')
         if args.var_func is not None:
-            args.out_dir = os.path.join(args.out_dir, f'{args.var_func}')
+            args.outdir = os.path.join(args.outdir, f'{args.var_func}')
     if not os.path.exists(args.outdir):
         os.makedirs(args.outdir, exist_ok=True)
 
@@ -249,7 +249,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
 
         if biased:
             orthogonal_vector = torch.tensor([-1, 1])
-            bias = mu_toy_train(labels, orthogonal_vector)
+            bias = mu_toy_train(labels, orthogonal_vector, device)
 
             inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
         else:
@@ -331,7 +331,7 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
 
             if biased:
                 orthogonal_vector = torch.tensor([-1, 1])
-                bias = mu_toy_train(labels, orthogonal_vector)
+                bias = mu_toy_train(labels, orthogonal_vector, device)
 
                 inputs = inputs + bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas
             else:
