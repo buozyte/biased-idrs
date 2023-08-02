@@ -106,7 +106,7 @@ def _unaugmented_mnist(split: str) -> Dataset:
 
 
 def _imagenet(split: str) -> Dataset:
-    if not IMAGENET_LOC_ENV in os.environ:
+    if IMAGENET_LOC_ENV not in os.environ:
         raise RuntimeError("environment variable for ImageNet directory not set")
 
     dir = os.environ[IMAGENET_LOC_ENV]

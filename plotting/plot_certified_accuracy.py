@@ -12,11 +12,12 @@ args = parser.parse_args()
 
 # TODO: adjust path for loading data -> I think it changed a bit
 def main():
-    '''
+    """
     Plot the certified accuracy against the radius.
-    
-    (Certified accuracy: fraction of data correctly classified under (smoothed) classifier, while prediction certifiably robust within ball with radius r)
-    '''
+
+    (Certified accuracy: fraction of data correctly classified under (smoothed) classifier, while prediction certifiably
+    robust within ball with radius r)
+    """
 
     # load data
     data = pd.read_csv(f"{args.path}/{args.filename}", delimiter='\t')

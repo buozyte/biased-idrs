@@ -9,7 +9,7 @@ from knn import KNNDistComp
 from models.base_models.architectures import get_architecture
 from models.biased_idrs import BiasedIDRSClassifier
 from models.input_dependent_rs import IDRSClassifier
-from models.rs import RandSmoothedClassifier
+from models.rs import RSClassifier
 
 
 parser = argparse.ArgumentParser(description='Plot')
@@ -33,13 +33,13 @@ parser.add_argument('--num_nearest_bias', default=5, type=int,
 args = parser.parse_args()
 
 
-# TODO: add possibility to use different functinos for the bias and variance
+# TODO: add possibility to use different functions for the bias and variance
 def main():
-    '''
+    """
     Plot the decision boundary for the toy example.
-    
+
     (Can easily be adapted to fit other examples. Only restriction: dimension of input data space = 2.)
-    '''
+    """
 
     # set device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -66,8 +66,9 @@ def main():
             distances[i * 100:(i + 1) * 100] = knn_computer.compute_dist(test_data, args.num_nearest_var, 2)
         distances = distances.numpy()
 
-        smoothed_classifier = IDRSClassifier(base_classifier=base_classifier, num_classes=num_classes, sigma=args.base_sigma, distances=distances,
-                                             rate=args.rate, m=1, device=device).to(device)
+        smoothed_classifier = IDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                             sigma=args.base_sigma, distances=distances, rate=args.rate, m=1,
+                                             device=device).to(device)
     elif args.biased:
         oracles = torch.zeros(40000)
         for i, data in enumerate(input_dataloader):
@@ -75,12 +76,13 @@ def main():
         oracles = oracles.numpy()
         oracles[oracles == 0] = -1
 
-        smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes, sigma=args.base_sigma,
-                                                   bias_weight=args.bias_weight, oracles=oracles, device=device).to(device)
+        smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                                   sigma=args.base_sigma, bias_weight=args.bias_weight, oracles=oracles,
+                                                   device=device).to(device)
 
     else:
-        smoothed_classifier = RandSmoothedClassifier(base_classifier=base_classifier, num_classes=num_classes,
-                                                     sigma=args.base_sigma, device=device).to(device)
+        smoothed_classifier = RSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                           sigma=args.base_sigma, device=device).to(device)
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
 
     outputs_0 = torch.zeros(40000)

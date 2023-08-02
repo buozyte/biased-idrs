@@ -15,7 +15,7 @@ def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r
     :param p_b: certain probability (see paper/expose)
     :param num_steps: number of steps to take in the computation in the radius
     :param r_computer: ?
-    :param safe_option: indicator wether to compute the largest radius for both (</>) cases (or only for one)
+    :param safe_option: indicator whether to compute the largest radius for both (</>) cases (or only for one)
     :return: certified radius for the current point
     """
 

@@ -1,4 +1,3 @@
-import torch
 import argparse
 import time
 import datetime
@@ -71,7 +70,7 @@ args = parser.parse_args()
 
 
 # TODO: add simple way to include other bias function in training (currently unsure which option is the best)
-# NOTE: normal rs and idrs can be defined via biased idrs (either leaving both functions or only the bias function as None)
+# NOTE: normal rs and idrs can be defined via biased idrs (either leaving both functions or only bias function as None)
 def main():
     if args.gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
@@ -113,7 +112,7 @@ def main():
     else:
         print("shit happens...")
         spatial_size = 0
-        num_classes = 0
+        num_channels = 0
         norm_const = 0
     # --------------------
 
@@ -216,7 +215,7 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
     :param num_channels: number of channels in the data
     :param biased: indicator whether a bias should be used
     :param bias_weight: "weight" of the bias
-    :param gaussian_aug: indicator wether a gaussian augmentation w.r.t. input-dependency should be performed
+    :param gaussian_aug: indicator whether a gaussian augmentation w.r.t. input-dependency should be performed
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
     :param epoch: current epoch
@@ -306,7 +305,7 @@ def test(loader: DataLoader, model: torch.nn.Module, criterion, base_sigma: floa
     :param num_channels: number of channels in the data
     :param biased: indicator whether a bias should be used
     :param bias_weight: "weight" of the bias
-    :param gaussian_aug: indicator wether a gaussian augmentation w.r.t. input-dependency should be performed
+    :param gaussian_aug: indicator whether a gaussian augmentation w.r.t. input-dependency should be performed
     :param norm_const: normalization constant for the data set
     :param device: device used for the computations
     :return: average loss and accuracy

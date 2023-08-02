@@ -18,8 +18,8 @@ class BiasedIDRSClassifier(nn.Module):
     Function defining the variance sigma based on paper: intriguing properties of input-dependent RS.
     """
 
-    def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None, bias_weight=1, distances=None, rate=0,
-                 m=0, abstain=-1):
+    def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None,
+                 bias_weight=1, distances=None, rate=0, m=0, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -46,6 +46,7 @@ class BiasedIDRSClassifier(nn.Module):
         self.variance_func = variance_func
         self.bias_weight = bias_weight
         self.oracles = oracles
+        self.distances = distances
         self.rate = rate
         self.m = m
         self.abstain = abstain
@@ -66,7 +67,7 @@ class BiasedIDRSClassifier(nn.Module):
 
     def sigma_id(self, x_index):
         """
-        Compute the varaince based on the chosen variance function and the according parameters.
+        Compute the variance based on the chosen variance function and the according parameters.
 
         :param x_index: index of the current point
         :return: variance w.r.t. current input
@@ -108,7 +109,8 @@ class BiasedIDRSClassifier(nn.Module):
                 bias = self.bias_id(x_index).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
-                noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)
+                noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times,
+                                                                   device=self.device) * self.sigma_id(x_index)
                 perturbed_predictions = self.forward(repeat_x_n_times + noise)
 
                 # predicted class for one sample = index of highest value

@@ -3,6 +3,7 @@ import torch
 
 BIAS_FUNCTIONS = [None, "mu_toy"]
 
+
 def mu_toy(oracles, bias_weight, x_index, base_classifier, device):
     """
     Input-dependent function to compute a bias for the toy example using a linear classifier.
@@ -24,6 +25,7 @@ def mu_toy(oracles, bias_weight, x_index, base_classifier, device):
     orthogonal_vector = torch.tensor([-w, 1]).to(device)
 
     return bias_weight * orthogonal_vector * oracles[x_index]
+
 
 def mu_toy_train(labels, orthogonal_vector, device, input_dim=2):
     """

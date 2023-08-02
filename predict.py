@@ -175,6 +175,6 @@ if __name__ == "__main__":
         correct = int(prediction == label)
 
         time_elapsed = str(datetime.timedelta(seconds=(after_time - before_time)))
-        print("{}\t{}\t{}\t{}\t{}\t{}".format(i, label, prediction, radius, time_elapsed), file=f, flush=True)
+        print("{}\t{}\t{}\t{}\t{}".format(i, label, prediction, radius, time_elapsed), file=f, flush=True)
 
     f.close()

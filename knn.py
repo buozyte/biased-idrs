@@ -56,7 +56,8 @@ class KNNDistComp:
 
     def compute_1nn_oracle(self, data, norm=2):
         """
-        Compute an oracle for the label of each data point based on the label of the nearest neighbour (w.r.t. the main data).
+        Compute an oracle for the label of each data point based on the label of the nearest neighbour (w.r.t. the main
+        data).
 
         :param data: input for which the distances should be computed
         :param norm: definition of the used lp norm
@@ -74,7 +75,8 @@ class KNNDistComp:
 
     def compute_knn_oracle(self, data, k=5, norm=2):
         """
-        Compute an oracle for the label of each data point based on the labels of the k nearest neighbours (w.r.t. the main data).
+        Compute an oracle for the label of each data point based on the labels of the k nearest neighbours (w.r.t. the
+        main data).
 
         :param data: input for which the distances should be computed
         :param k: number of nearest neighbours to be considered

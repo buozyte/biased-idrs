@@ -95,7 +95,8 @@ class RSClassifier(nn.Module):
             return top_2_counts.indices[0].item()
         return self.abstain
 
-    def lower_conf_bound(self, k, n, alpha):
+    @staticmethod
+    def lower_conf_bound(k, n, alpha):
         """
         Compute a one-sided (1-alpha) lower confidence interval using the Clopper-Pearson confidence interval.
         (See paper: certified adversarial robustness via RS)
