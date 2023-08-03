@@ -2,12 +2,11 @@ from scipy.stats import binom_test
 from statsmodels.stats.proportion import proportion_confint
 import torch
 from torch import nn
-import numpy as np
 
 from input_dependent_functions import bias_functions as bf
 from input_dependent_functions import variance_functions as vf
 
-# from certified_radius import input_dependent_certified_radius_given_pb
+from certified_radius import biased_input_dependent_certified_radius_given_pb
 
 
 # https://pytorch.org/docs/stable/generated/torch.nn.Module.html
@@ -19,7 +18,7 @@ class BiasedIDRSClassifier(nn.Module):
     """
 
     def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None,
-                 bias_weight=1, distances=None, rate=0, m=0, abstain=-1):
+                 bias_weight=1, lipschitz=0, distances=None, rate=0, m=0, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -29,6 +28,7 @@ class BiasedIDRSClassifier(nn.Module):
         :param device: device for device handling
         :param oracles: output oracle for each sample based on the k nearest neighbours
         :param bias_weight: "weight" of the bias
+        :param lipschitz: Lipschitz constant for the chosen mu function
         :param distances: mean distances for every sample to its k nearest neighbours
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
@@ -44,8 +44,9 @@ class BiasedIDRSClassifier(nn.Module):
 
         self.bias_func = bias_func
         self.variance_func = variance_func
-        self.bias_weight = bias_weight
         self.oracles = oracles
+        self.bias_weight = bias_weight
+        self.lipschitz = lipschitz
         self.distances = distances
         self.rate = rate
         self.m = m
@@ -187,9 +188,10 @@ class BiasedIDRSClassifier(nn.Module):
         p_a = self.lower_conf_bound(counts[c_a].cpu(), n, alpha)
 
         if p_a > 0.5:
-            # sigma_0 = self.sigma_id(x_index)
-            # radius = input_dependent_certified_radius_given_pb(sigma_0, self.rate, dim, 1 - p_a, num_steps)
-            return c_a, 0.0  # radius
+            sigma_0 = self.sigma_id(x_index)
+            radius = biased_input_dependent_certified_radius_given_pb(sigma_0, self.lipschitz, self.rate, dim, 1 - p_a,
+                                                                      num_steps)
+            return c_a, radius
         return self.abstain, 0.0
 
     def forward(self, x):

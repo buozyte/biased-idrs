@@ -42,8 +42,6 @@ parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float, metavar=
                     help='weight decay (default: 1e-4)')
 parser.add_argument('--base_sigma', default=0.12, type=float,
                     help="Base sigma used for gaussian augmentation")
-parser.add_argument('--rate', default=0.01, type=float,
-                    help="The rate used for gaussian augmentation")
 parser.add_argument('--gpu', default=None, type=str,
                     help='id(s) for CUDA_VISIBLE_DEVICES')
 parser.add_argument('--print_freq', default=10, type=int, metavar='N',
@@ -59,6 +57,8 @@ parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
 parser.add_argument('--var_func', default=None, type=str, choices=VARIANCE_FUNCTIONS,
                     help='Choice for the variance function to be used')
+parser.add_argument('--rate', default=0.01, type=float,
+                    help="The rate used for gaussian augmentation")
 # bias
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
@@ -66,6 +66,8 @@ parser.add_argument('--bias_weight', default=1, type=float,
                     help="Weight of bias")
 parser.add_argument('--bias_func', default=None, type=str, choices=BIAS_FUNCTIONS,
                     help='Choice for the bias function to be used')
+parser.add_argument('--lipschitz_const', default=0.0, type=float,
+                    help="Lipschitz constant of the bias functions")
 args = parser.parse_args()
 
 
@@ -123,7 +125,8 @@ def main():
     if args.biased:
         model = BiasedIDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,
                                      device=device, bias_func=args.bias_func, variance_func=args.var_func,
-                                     bias_weight=args.bias_weight, rate=args.rate, m=norm_const).to(device)
+                                     bias_weight=args.bias_weight, lipschitz=args.lipschitz_const,
+                                     rate=args.rate, m=norm_const).to(device)
         add_model_name = "_biased_id"
     elif args.id_var:
         model = IDRSClassifier(base_classifier=base_model, num_classes=num_classes, sigma=args.base_sigma,

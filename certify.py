@@ -38,8 +38,6 @@ parser.add_argument("--N", type=int, default=100000,
                     help="number of samples to use")
 parser.add_argument("--alpha", type=float, default=0.001,
                     help="failure probability")
-parser.add_argument("--rate", type=float, default=0.01,
-                    help="exponential rate of increase in sigma")
 parser.add_argument("--norm", type=int, default=2,
                     help="norm to be used in KNN")
 parser.add_argument("--num_workers", type=int, default=0,
@@ -57,6 +55,8 @@ parser.add_argument('--num_nearest', default=20, type=int,
                     help='How many nearest neighbors to use')
 parser.add_argument('--var_func', default=None, type=str, choices=VARIANCE_FUNCTIONS,
                     help='Choice for the variance function to be used')
+parser.add_argument("--rate", type=float, default=0.01,
+                    help="exponential rate of increase in sigma")
 # bias
 parser.add_argument('--biased', default=False, type=bool,
                     help="Indicator whether to use a biased")
@@ -66,6 +66,8 @@ parser.add_argument('--bias_weight', default=1, type=float,
                     help="Weight of bias")
 parser.add_argument('--bias_func', default=None, type=str, choices=BIAS_FUNCTIONS,
                     help='Choice for the bias function to be used')
+parser.add_argument('--lipschitz_const', default=0.0, type=float,
+                    help="Lipschitz constant of the bias functions")
 args = parser.parse_args()
 
 
@@ -130,8 +132,8 @@ if __name__ == "__main__":
         smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                    sigma=args.base_sigma, device=device, bias_func=args.bias_func,
                                                    variance_func=args.var_func, oracles=oracles,
-                                                   bias_weight=args.bias_weight, distances=distances, rate=args.rate,
-                                                   m=norm_const).to(device)
+                                                   bias_weight=args.bias_weight, lipschitz=args.lipschitz_const,
+                                                   distances=distances, rate=args.rate, m=norm_const).to(device)
     elif args.id_var:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, args.num_workers, device)

@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 BIAS_FUNCTIONS = [None, "mu_toy"]
