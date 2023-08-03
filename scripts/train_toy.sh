@@ -2,9 +2,10 @@
 set -e
 
 # reminder: sbash needs shell config -> for conda
+. $HOME/.bashrc
 
 conda activate idrs
-cd $HOME/git/idrs
+# cd $HOME/git/idrs
 
 
 python train.py toy_dataset_linear_sep linear_model trained_models/toy/noise_0.00/bias_0.0 --num_workers 2 --batch 250 --base_sigma 0.00 --epochs 5 --biased True --bias_func mu_toy --bias_weight 0

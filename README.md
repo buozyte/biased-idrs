@@ -37,12 +37,21 @@ Note that the installation of `R` into the environment is needed to install and 
 
 ## Usage
 
-Note that in general the implementation for the biased IDRS approach can be used instead of the implementation of the
-approaches by either not providing any functions or only a function for the variance.
+To train models and certify or test smoothed models use the accordingly named scripts. Further, notes on the training
+and certification can be found below.
+
+Notes:
+- In general the implementation for the biased IDRS approach can be used instead of the implementation of the approaches
+  by either not providing any functions or only a function for the variance.
+- By setting the `biased` parameter to `True`, the biased IDRS scheme is used with the chosen function for the bias and
+  variance. If no bias function is provided, the bias is set to 0. If no variance function is provided, the variance is
+  so to the constant `base sigma`.
+- Currently, the dynamic choice of the bias and variance function is only available for the biased IDRS method, not the
+  non-biased one, as it can be translated to the biased scheme (by not providing a bias function).
 
 ### Adding new functions for the variance and bias
 
-TODO: "dynamically" change the function used to compute the variance and bias for the noise used on the training data.
+_TODO_: "dynamically" change the function used to compute the variance and bias for the noise used on the training data.
 
 1. Add the function in the according file in the `input_dependent_functions` directory and add its name to the list of
 allowed functions, which can be found on the top of each file.
@@ -62,13 +71,6 @@ To train a model, the [`train.py`](https://gitlab.lrz.de/ga27fey/idrs/-/blob/mai
 Parameters are provided via argparse. Necessary and optional parameters can be found in either the file or by using the
 `--help` method. Examples can be found in the `scripts` directory.
 
-Note that by setting the `biased` parameter to `True`, the biased IDRS scheme is used with the chosen function for the
-bias and variance. If no bias function is provided, the bias is set to 0. If no variance function is provided, the
-variance is so to the constant `base sigma`.
-
-Currently, this dynamic choice of the bias and variance function is only available for the biased IDRS method, not the
-non-biased as, as this method can be translated to the biased one by not providing a bias function.
-
 ### Certifying a model
 
 Before certifying a model, make sure that the training for the according model went through successfully.
@@ -77,9 +79,26 @@ To certify a model, the [`certify.py`](https://gitlab.lrz.de/ga27fey/idrs/-/blob
 Parameters are provided via argparse. Necessary and optional parameters can be found in either the file or by using the
 `--help` method. Examples can be found in the `scripts` directory.
 
-Note that by setting the `biased` parameter to `True`, the biased IDRS scheme is used with the chosen function for the
-bias and variance. If no bias function is provided, the bias is set to 0. If no variance function is provided, the
-variance is so to the constant `base sigma`.
+### Running the [scripts](https://gitlab.lrz.de/ga27fey/idrs/-/tree/main/scripts) using `slurm`
 
-Currently, this dynamic choice of the bias and variance function is only available for the biased IDRS method, not the
-non-biased as, as this method can be translated to the biased one by not providing a bias function.
+Tested utilities: `sbatch`, `srun`.
+
+Issue encountered with `sbatch`: if `.bashrc` configured to skip conda initialization in a non-interactive mode,
+activating conda venvs in bash scripts will fail. Solve by moving conda initialization or not using conda venvs
+(-> adapt scripts accordingly).
+
+**Notes**:
+- assumptions: conda venv is named `idrs` and job is started from the top level directory of the repo.
+- depending on where the results should be saved, the scripts have to adjusted
+
+_`sbatch` example:_
+```
+sbatch
+-o {path-to-output-file}
+-e {path-to-error-file}
+-- {further parameters}
+{path-to-script}
+```
+```
+sbatch -o $HOME/train.out -e $HOME/train.err --time=0-08:00 --cpus-per-task=2 --mem=16G --gres=gpu:1 --partition=gpu_all --qos=students $HOME/git/idrs/scripts/train_input_dependent.sh
+```

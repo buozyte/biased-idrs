@@ -2,9 +2,10 @@
 set -e
 
 # reminder: sbash needs shell config -> for conda
+. $HOME/.bashrc
 
 conda activate idrs
-cd $HOME/git/idrs
+# cd $HOME/git/idrs
 
 python certify.py toy_dataset_linear_sep trained_models/toy/noise_0.00/bias_0.0/mu_toy/checkpoint_biased_id.pth.tar 0.00 data/certify/toy/noise_0.00/train_bias_0.0 --skip 1 --batch 200 --biased True --bias_func mu_toy --bias_weight 0.0
 python certify.py toy_dataset_linear_sep trained_models/toy/noise_0.00/bias_0.3/mu_toy/checkpoint_biased_id.pth.tar 0.00 data/certify/toy/noise_0.00/train_bias_0.3 --skip 1 --batch 200 --biased True --bias_func mu_toy --bias_weight 0.3
