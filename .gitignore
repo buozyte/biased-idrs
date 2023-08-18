@@ -8,3 +8,6 @@ dataset_cache/*
 trained_models/*
 .DS_Store
 logs/
+
+slurm/idrs_config.yaml
+**/wandb
