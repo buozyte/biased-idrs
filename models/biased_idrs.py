@@ -18,7 +18,7 @@ class BiasedIDRSClassifier(nn.Module):
     """
 
     def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None,
-                 bias_weight=1, lipschitz=0, distances=None, rate=0, m=0, abstain=-1):
+                 bias_weight=1, lipschitz=0, knns=None, distances=None, rate=0, m=0, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -29,7 +29,8 @@ class BiasedIDRSClassifier(nn.Module):
         :param oracles: output oracle for each sample based on the k nearest neighbours
         :param bias_weight: "weight" of the bias
         :param lipschitz: Lipschitz constant for the chosen mu function
-        :param distances: mean distances for every sample to its k nearest neighbours
+        :param knns: k-nearest neighbours for each sample
+        :param distances: according distances for every sample to its k-nearest neighbours
         :param rate: semi-elasticity constant for chosen sigma function
         :param m: normalization constant for data set
         :param abstain: value to be returned when smoothed classifier should abstain
@@ -48,14 +49,16 @@ class BiasedIDRSClassifier(nn.Module):
         self.bias_weight = bias_weight
         self.lipschitz = lipschitz
         self.distances = distances
+        self.knns = knns
         self.rate = rate
         self.m = m
         self.abstain = abstain
 
-    def bias_id(self, x_index):
+    def bias_id(self, x, x_index):
         """
         Compute the bias based on the chosen bias function and the according parameters.
 
+        :param x: current sample/point
         :param x_index: index of the current point
         :return: bias w.r.t. current input
         """
@@ -65,6 +68,8 @@ class BiasedIDRSClassifier(nn.Module):
         
         if self.bias_func == "mu_toy":
             return bf.mu_toy(self.oracles, self.bias_weight, x_index, self.base_classifier, self.device)
+        if self.bias_func == "mu_knn_based":
+            return bf.mu_nearest_neighbour(x, x_index, self.knns, self.distances, self.device)
 
     def sigma_id(self, x_index):
         """
@@ -107,7 +112,7 @@ class BiasedIDRSClassifier(nn.Module):
                 # for toy example:
                 repeat_x_n_times = x.repeat(current_batch, 1)
                 # repeat_x_n_times = x.repeat(current_batch, 1, 1, 1)
-                bias = self.bias_id(x_index).repeat(current_batch, 1)
+                bias = self.bias_id(x, x_index).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times,

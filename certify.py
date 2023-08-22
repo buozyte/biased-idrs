@@ -104,10 +104,21 @@ if __name__ == "__main__":
     test_dataset = get_dataset(args.dataset, "test")
 
     if args.dataset == 'cifar10':
+        spatial_size = 32
+        num_channels = 3
         norm_const = 5
     elif args.dataset == 'mnist':
+        spatial_size = 28
+        num_channels = 1
         norm_const = 1.5
+    elif "toy" in args.dataset:
+        spatial_size = 2
+        num_channels = 0
+        norm_const = 0
     else:
+        print("shit happens...")
+        spatial_size = 0
+        num_channels = 0
         norm_const = 0
     # --------------------
 
@@ -115,14 +126,20 @@ if __name__ == "__main__":
     num_classes = get_num_classes(args.dataset)
     if args.biased:
         knn_computer = KNNDistComp(train_dataset, args.num_workers, device)
-        test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False,
-                                     num_workers=0, pin_memory=False)
+        test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False, num_workers=0, pin_memory=False)
+
+        if num_channels == 0:
+            knns = torch.zeros(100, args.num_nearest_bias, spatial_size)
+        else:
+            knns = torch.zeros(100, args.num_nearest_bias, num_channels, spatial_size, spatial_size)
         oracles = torch.zeros(10000)
         distances = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
-            oracles[i * 100:(i + 1) * 100] = knn_computer.compute_knn_oracle(test_data, k=args.num_nearest_bias,
-                                                                             norm=args.norm)
-            distances[i * 100:(i + 1) * 100] = knn_computer.compute_dist(test_data, args.num_nearest, args.norm)
+            if args.bias_func == "mu_toy":
+                oracles[i * 100:(i + 1) * 100] = knn_computer.compute_knn_oracle(test_data, k=args.num_nearest_bias,
+                                                                                 norm=args.norm)
+            if args.bias_func == "mu_knn_based":
+                knns[i * 100:(i + 1) * 100, :], distances[i * 100:(i + 1) * 100, :] = knn_computer.compute_knns_and_dists(test_data, k=args.num_nearest_bias, norm=args.norm)
             
         distances = distances.numpy()
         oracles = oracles.numpy()
@@ -133,7 +150,8 @@ if __name__ == "__main__":
                                                    sigma=args.base_sigma, device=device, bias_func=args.bias_func,
                                                    variance_func=args.var_func, oracles=oracles,
                                                    bias_weight=args.bias_weight, lipschitz=args.lipschitz_const,
-                                                   distances=distances, rate=args.rate, m=norm_const).to(device)
+                                                   knns=knns, distances=distances, rate=args.rate,
+                                                   m=norm_const).to(device)
     elif args.id_var:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, args.num_workers, device)

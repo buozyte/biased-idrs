@@ -94,6 +94,26 @@ class KNNDistComp:
         oracles, _ = torch.mode(raw_labels[sorted_indices[:, 0:k]], dim=1)
         return oracles
 
+    def compute_knns_and_dists(self, data, k, norm=2):
+        """
+        Compute the k nearest neighbours in the main data for each data point
+
+        :param data: input for which the distances should be computed
+        :param k: number of nearest neighbours to be considered
+        :param norm: definition of the used lp norm
+        :return: set of nearest neighbours
+        """
+
+        data = data.to(self.device)
+        raw_data = self._obtain_data().to(self.device)
+
+        dists = torch.cdist(data.reshape((len(data), -1)),
+                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+
+        sorted_dists, sorted_indices = dists.sort(dim=1)
+        knns = raw_data[sorted_indices[:, :1]]
+        return knns, sorted_dists[:, :k]
+
     def compute_knns(self, data, k, norm=2):
         """
         Compute the k nearest neighbours in the main data for each data point
