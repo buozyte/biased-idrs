@@ -245,14 +245,13 @@ def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Opti
         
         acc.val = acc.val.item()
         
-        # if i % 10 == 0:
-        #     print('Epoch: [{0}][{1}/{2}]\t'
-        #           'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
-        #           'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
-        #           'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-        #           'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(
-        #         epoch, i, len(loader), batch_time=batch_time,
-        #         data_time=data_time, loss=losses, top1=acc))
+        if i % 10 == 0:
+            print('Epoch: [{0}][{1}/{2}]\t'
+                  'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
+                  'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
+                  'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'.format(epoch, i, len(loader), batch_time=batch_time,
+                                                                   data_time=data_time, loss=losses, top1=acc))
 
     return losses.avg, acc.avg
 

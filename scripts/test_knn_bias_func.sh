@@ -14,7 +14,7 @@ python certify.py toy_dataset_linear_sep trained_models/toy/noise_0.25/bias_0.0/
 
 # ---
 
-python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.25 --num_workers 2 --batch 400 --base_sigma 0.25
+# python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.25 --num_workers 2 --batch 400 --base_sigma 0.25
 python train.py cifar10 cifar_resnet110 trained_models/cifar10/resnet110/noise_0.25/bias_0.0 --num_workers 2 --batch 400 --base_sigma 0.25 --biased True --bias_func mu_knn_based --bias_weight 0
 
 python certify.py cifar10 trained_models/cifar10/resnet110/noise_0.25/checkpoint.pth.tar 0.25 data/certify/cifar10/resnet110/noise_0.25/bias_0.0 --skip 20 --batch 400
