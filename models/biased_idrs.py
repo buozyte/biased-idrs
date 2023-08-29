@@ -108,10 +108,13 @@ class BiasedIDRSClassifier(nn.Module):
                 current_batch = min(batch_size, remaining_samples)
                 remaining_samples -= current_batch
 
+                rep_shape = [current_batch]
+                for _ in range(len(x.shape)):
+                    rep_shape.append(1)
+
                 # create tensor containing n times the sample x
-                # for toy example:
-                repeat_x_n_times = x.repeat(current_batch, 1)
-                # repeat_x_n_times = x.repeat(current_batch, 1, 1, 1)
+                repeat_x_n_times = x.repeat(rep_shape)
+
                 bias = self.bias_id(x, x_index).repeat(current_batch, 1)
 
                 # generate and evaluate (/classify) the perturbed samples

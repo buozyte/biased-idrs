@@ -74,8 +74,12 @@ class IDRSClassifier(nn.Module):
                 current_batch = min(batch_size, remaining_samples)
                 remaining_samples -= current_batch
 
+                rep_shape = [current_batch]
+                for _ in range(len(x.shape)):
+                    rep_shape.append(1)
+
                 # create tensor containing n times the sample x
-                repeat_x_n_times = x.repeat(current_batch, 1, 1, 1)
+                repeat_x_n_times = x.repeat(rep_shape)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = torch.randn_like(repeat_x_n_times, device=self.device) * self.sigma_id(x_index)
