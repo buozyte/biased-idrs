@@ -60,8 +60,8 @@ def visualize_dataset(data, labels, ls, show=False, train=True):
         plt.show()
 
 
-def visualize_dataset_with_classifier(data, labels, ls, model, bias_weight=0, oracles=None, show=False, save=False,
-                                      file_path="", add_file_name="", train=True):
+def visualize_dataset_with_classifier_oracle_based(data, labels, ls, model, bias_weight=0, oracles=None, show=False,
+                                                   save=False, file_path="", add_file_name="", train=True):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     data_1 = data[labels == 1]
@@ -131,6 +131,58 @@ def visualize_dataset_with_classifier(data, labels, ls, model, bias_weight=0, or
             plt.savefig(f"{file_path}/visual_decision_boundary_test{add_file_name}.pdf")
 
 
+def visualize_dataset_with_classifier_knn_based(data, labels, ls, model, bias_weight=1, knns=None, distances=None,
+                                                show=False, save=False, file_path="", add_file_name="", train=True):
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    data_1 = data[labels == 1]
+    data_2 = data[labels == 0]
+
+    if train:
+        plt.figure(2)
+    else:
+        plt.figure(3)
+    plt.scatter(data_1[:, 0], data_1[:, 1], label="class: 1", s=3, color='blue')
+    plt.scatter(data_2[:, 0], data_2[:, 1], label="class: 0", s=3, color='red')
+
+    if knns is not None and distances is not None:
+        for i in range(0, len(data)):
+            x_distances = distances[i]
+            dist_weight = np.min([x_distances[0], np.sqrt(x_distances[0] * (x_distances[1] - x_distances[0]))])
+
+            new_data = data[i, :] + bias_weight * dist_weight * (knns[i][0] - data[i, :])
+
+            plt.plot([data[i, 0], new_data[0]],
+                     [data[i, 1], new_data[1]], 'g-')
+
+    plt.plot(ls, M * ls + C, 'k-', alpha=0.1)
+
+    xx, yy = np.meshgrid(ls, ls)
+    inputs = np.c_[xx.ravel(), yy.ravel()]
+    outputs = model(torch.from_numpy(inputs).to(torch.float32).to(device))
+    _, pred = outputs.topk(1, 1, True, True)
+    pred = pred.t().cpu()
+    plt.contourf(xx, yy, pred.reshape(xx.shape), cmap=plt.cm.Spectral, alpha=0.1)
+
+    plt.legend(fontsize=9)
+    plt.xlabel("x", fontsize=14)
+    plt.ylabel("y", fontsize=14)
+
+    # plt.xlim([min(ls)-0.2, max(ls)+0.2])
+    # plt.ylim([min(ls)-0.2, max(ls)+0.2])
+    if train:
+        plt.title("Train dataset", fontsize=16)
+    else:
+        plt.title("Test dataset", fontsize=16)
+    if show:
+        plt.show()
+    if save:
+        if train:
+            plt.savefig(f"{file_path}/visual_decision_boundary_train{add_file_name}.pdf")
+        else:
+            plt.savefig(f"{file_path}/visual_decision_boundary_test{add_file_name}.pdf")
+
+
 class ToyDatasetLinearSeparationTrain(Dataset):
     """
     Linearly separated data.
@@ -159,11 +211,19 @@ class ToyDatasetLinearSeparationTrain(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, True)
 
-    def visualize_with_classifier(self, model, bias_weight=0, save=True, file_path="", add_file_name="", show=False):
+    def visualize_with_classifier_oracle_based(self, model, bias_weight=0, save=True, file_path="", add_file_name="",
+                                               show=False):
         ls = np.linspace(self.low-1, self.high+1, num=300)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, model, bias_weight, None, show, save, file_path,
-                                          add_file_name, True)
+        visualize_dataset_with_classifier_oracle_based(self.data, self.labels, ls, model, bias_weight, None, show, save,
+                                                       file_path, add_file_name, True)
+
+    def visualize_with_classifier_knn_based(self, model, bias_weight=1, save=True, file_path="", add_file_name="",
+                                            show=False):
+        ls = np.linspace(self.low-1, self.high+1, num=300)
+
+        visualize_dataset_with_classifier_knn_based(self.data, self.labels, ls, model, bias_weight, None, None, show,
+                                                    save, file_path, add_file_name, True)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]
@@ -200,12 +260,19 @@ class ToyDatasetLinearSeparationTest(Dataset):
 
         visualize_dataset(self.data, self.labels, ls, show, False)
 
-    def visualize_with_classifier(self, model, bias_weight=0, oracles=None, show=False, save=True, file_path="",
-                                  add_file_name=""):
+    def visualize_with_classifier_oracle_based(self, model, bias_weight=0, oracles=None, show=False, save=True,
+                                               file_path="", add_file_name=""):
         ls = np.linspace(self.low-1, self.high+1, num=300)
 
-        visualize_dataset_with_classifier(self.data, self.labels, ls, model, bias_weight, oracles, show, save,
-                                          file_path, add_file_name, False)
+        visualize_dataset_with_classifier_oracle_based(self.data, self.labels, ls, model, bias_weight, oracles, show,
+                                                       save, file_path, add_file_name, False)
+
+    def visualize_with_classifier_knn_based(self, model, bias_weight=1, knns=None, distances=None, show=False,
+                                            save=True, file_path="", add_file_name=""):
+        ls = np.linspace(self.low-1, self.high+1, num=300)
+
+        visualize_dataset_with_classifier_knn_based(self.data, self.labels, ls, model, bias_weight, knns, distances,
+                                                    show, save, file_path, add_file_name, False)
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]

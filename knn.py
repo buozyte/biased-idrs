@@ -94,25 +94,43 @@ class KNNDistComp:
         oracles, _ = torch.mode(raw_labels[sorted_indices[:, 0:k]], dim=1)
         return oracles
 
-    def compute_knns_and_dists(self, data, k, norm=2):
+    def compute_knn_and_dists(self, data, norm=2):
         """
-        Compute the k nearest neighbours in the main data for each data point
+        Compute the nearest neighbour in the main data for each data point.
+        Additionally compute the distance to this nearest neighbour and the distance to the nearest neighbour of another
+        class.
 
         :param data: input for which the distances should be computed
-        :param k: number of nearest neighbours to be considered
         :param norm: definition of the used lp norm
-        :return: set of nearest neighbours
+        :return: nearest neighbour and two distances
         """
 
         data = data.to(self.device)
-        raw_data = self._obtain_data().to(self.device)
+        raw_data, raw_labels = self._obtain_data_with_labels()
 
+        # compute distances from each data point to each base data point
         dists = torch.cdist(data.reshape((len(data), -1)),
                             raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
+        # sort the distances + sort the base data points and their labels according to the distances w.r.t. input data
         sorted_dists, sorted_indices = dists.sort(dim=1)
-        knns = raw_data[sorted_indices[:, :1]]
-        return knns, sorted_dists[:, :k]
+        knn = raw_data[sorted_indices[:, 0]]
+        knn_labels = raw_labels[sorted_indices[:, :]]
+
+        # determine label of NN -> blow up to same shape as knn_labels data
+        blow_up_l = knn_labels[:, 0].unsqueeze(dim=1).repeat_interleave(knn_labels.shape[1], dim=1).to(self.device)
+        # index of first 1 = index of distance to second NN with other label in the sorted distances
+        not_same_label = (blow_up_l != knn_labels) * 1
+        # multiply each element in the row with decreasing number -> determine index of largest such number in each row
+        # result: index of second NN with different label in sorted data
+        indices = torch.argmax(not_same_label * torch.arange(not_same_label.shape[1], 0, -1), 1, keepdim=True)
+
+        # get the according distances in each row
+        dist_to_second_nearest = torch.gather(sorted_dists, 1, indices)
+
+        all_dists = torch.cat((sorted_dists[:, :1], dist_to_second_nearest), dim=-1)
+
+        return knn, all_dists
 
     def compute_knns(self, data, k, norm=2):
         """
