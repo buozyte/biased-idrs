@@ -115,7 +115,7 @@ class BiasedIDRSClassifier(nn.Module):
                 # create tensor containing n times the sample x
                 repeat_x_n_times = x.repeat(rep_shape)
 
-                bias = self.bias_id(x, x_index).repeat(current_batch, 1)
+                bias = self.bias_id(x, x_index).repeat(rep_shape)
 
                 # generate and evaluate (/classify) the perturbed samples
                 noise = self.bias_weight * bias + torch.randn_like(repeat_x_n_times,

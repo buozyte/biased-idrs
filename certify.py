@@ -79,9 +79,9 @@ def main_certify(dataset, base_classifier, base_sigma, out_dir, batch=1000, skip
 
         oracles = torch.zeros(10000)
         if num_channels == 0:
-            knns = torch.zeros(100, spatial_size)
+            knns = torch.zeros(10000, spatial_size)
         else:
-            knns = torch.zeros(100, num_channels, spatial_size, spatial_size)
+            knns = torch.zeros(10000, num_channels, spatial_size, spatial_size)
         distances = torch.zeros(10000, 2)
         for i, (test_data, labels) in enumerate(test_dataloader):
             if bias_func == "mu_toy":

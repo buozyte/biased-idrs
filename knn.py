@@ -123,7 +123,7 @@ class KNNDistComp:
         not_same_label = (blow_up_l != knn_labels) * 1
         # multiply each element in the row with decreasing number -> determine index of largest such number in each row
         # result: index of second NN with different label in sorted data
-        indices = torch.argmax(not_same_label * torch.arange(not_same_label.shape[1], 0, -1), 1, keepdim=True)
+        indices = torch.argmax(not_same_label * torch.arange(not_same_label.shape[1], 0, -1, device=self.device), 1, keepdim=True)
 
         # get the according distances in each row
         dist_to_second_nearest = torch.gather(sorted_dists, 1, indices)
