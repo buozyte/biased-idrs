@@ -1,6 +1,6 @@
 # evaluate a smoothed classifier on a dataset
 import argparse
-import datetime
+# import datetime
 from time import time
 import os
 
@@ -17,34 +17,34 @@ from input_dependent_functions.bias_functions import BIAS_FUNCTIONS
 from input_dependent_functions.variance_functions import VARIANCE_FUNCTIONS
 
 
-def main_certify(dataset, base_classifier, base_sigma, out_dir, batch=1000, skip=1, max=-1, split="test", N0=100,
+def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, skip=1, max=-1, split="test", N0=100,
                  N=100000, alpha=0.001, norm=2, num_workers=2, use_cuda=False, index_min=0, index_max=10000,
                  id_var=False, num_nearest=20, var_func=None, rate=0.01, biased=False, num_nearest_bias=5,
-                 bias_weight=1, bias_func=None, lipschitz_const=0.0):
+                 bias_weight=1, bias_func=None, lipschitz_const=0.0, external_logger=None):
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    if id_var:
-        add_model_type = "_id"
-    elif biased:
-        add_model_type = "_biased_id"
-    else:
-        add_model_type = ""
+    # if id_var:
+    #     add_model_type = "_id"
+    # elif biased:
+    #     add_model_type = "_biased_id"
+    # else:
+    #     add_model_type = ""
 
     # load the base classifier
-    checkpoint = torch.load(base_classifier)  # if I wanna use cuda, delete the map_location argument
+    checkpoint = torch.load(trained_classifier)  # if I wanna use cuda, delete the map_location argument
     base_classifier = get_architecture(checkpoint["arch"], dataset, device)
 
     # prepare output file
-    if biased:
-        # out_dir = os.path.join(out_dir, f'bias_{bias_weight}')
-        if bias_func is not None:
-            out_dir = os.path.join(out_dir, f'{bias_func}')
-        if var_func is not None:
-            out_dir = os.path.join(out_dir, f'{var_func}')
+    # if biased:
+    #     # out_dir = os.path.join(out_dir, f'bias_{bias_weight}')
+    #     if bias_func is not None:
+    #         out_dir = os.path.join(out_dir, f'{bias_func}')
+    #     if var_func is not None:
+    #         out_dir = os.path.join(out_dir, f'{var_func}')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    outfile = os.path.join(out_dir, f'sigma_{base_sigma}{add_model_type}')
+    outfile = os.path.join(out_dir, 'results.txt')
     f = open(outfile, 'a')
     print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f, flush=True)
 
@@ -140,6 +140,7 @@ def main_certify(dataset, base_classifier, base_sigma, out_dir, batch=1000, skip
 
     correct_sum = 0
     certified_sum = 0
+    overall_time_start = time()
     for i in range(index_min, index_max):
         # only certify every skip examples, and stop after max examples
         if i % skip != 0:
@@ -161,9 +162,23 @@ def main_certify(dataset, base_classifier, base_sigma, out_dir, batch=1000, skip
         after_time = time()
         correct = int(prediction == label)
 
-        time_elapsed = str(datetime.timedelta(seconds=(after_time - before_time)))
+        time_elapsed = after_time - before_time  # str(datetime.timedelta(seconds=(after_time - before_time)))
         print("{}\t{}\t{}\t{}\t{}\t{}".format(
             i, label, prediction, radius, correct, time_elapsed), file=f, flush=True)
+
+        if external_logger is not None:
+            current_result = {
+                "sample_index": i,
+                "true_label": label,
+                "predicted_label": prediction,
+                "correctly_predicted": correct,
+                "certified_radius": radius,
+                "time": {
+                    "elapsed": time_elapsed,
+                    "overall": after_time - overall_time_start,
+                }
+            }
+            external_logger(current_result)
 
         correct_sum += correct
         certified_sum += 1
@@ -177,8 +192,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Certify many examples non-constant sigma')
     parser.add_argument("dataset", choices=DATASETS,
                         help="which dataset")
-    parser.add_argument("base_classifier", type=str,
-                        help="path to saved pytorch model of base classifier")
+    parser.add_argument("trained_classifier", type=str,
+                        help="path to saved pytorch model of the trained classifier")
     parser.add_argument("base_sigma", type=float, default=0.5,
                         help="base smoothing strength for samples closest to the boundary")
     parser.add_argument("out_dir", type=str,

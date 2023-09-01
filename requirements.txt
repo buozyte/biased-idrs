@@ -6,3 +6,7 @@ torch~=1.13.1
 torchvision~=0.14.1
 rpy2~=3.5.12
 pandas~=1.5.2
+
+wandb~=0.15.9
+sacred~=0.8.4
+seml~=0.3.7

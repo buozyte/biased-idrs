@@ -70,25 +70,36 @@ slurm:
 
 ###### BEGIN PARAMETER CONFIGURATION ######
 
-fixed:
-  dataset_name: "dataset_test"
+# fixed:
+#   dataset_name: "dataset_test"
 
 grid:
-  model_name:
+  dataset_name:
     type: choice
     options:
-      - "A"
-      - "B"
+      - "toy"
+      - "cifar10"
 
-  mu:
+  base_sigma:
     type: choice
     options:
-      - "knn"
-      - "gradient"
+      - 0.0
+      - 0.12
+      - 0.25
+      - 0.5
+      - 1.0
 
   sigma:
     type: choice
     options:
-      - "old_knn"
-      - "new_knn"
+      - "sigma_knn"
+      - None
 
+  mu:
+    type: choice
+    options:
+      - "knn-1.0"
+      - "knn-0.3"
+      - "knn-0.1"
+      # - "gradient"
+      - None

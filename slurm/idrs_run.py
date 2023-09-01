@@ -8,6 +8,9 @@ from wandb.sacred import WandbObserver
 import torch
 import numpy as np
 
+from train import main_train
+from certify import main_certify
+
 import time
 import os
 
@@ -31,64 +34,101 @@ def config():
         ex.observers.append(WandbObserver(config={"project": project_name}, reinit=False))
 
 
-
-# ADD FUNCTIONS
-
-def print_random():
-    logging.info(f"random number: {np.random.rand()}")
-    return 
-
 @ex.automain
-def run(model_name: str, dataset_name: str, mu: str, sigma: str, _run):
+def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
     """ This code is executed for each parameter configuration.
     
     """
     config_dict = locals()
-    device = torch.device("cuda")
-
     # if necessary, host name is
     hostname = os.environ.get("HOSTNAME")
 
-    # get the model
-    #network = get_network(model_name).to(device)
-
     # summary of the configs
-    configs_to_print = ("model_name", "dataset_name")
+    configs_to_print = ("dataset_name", "sigma", "mu", "base_sigma")
     logging.info("Received the following configuration")
     for key in configs_to_print:
         logging.info(f"{key}: {config_dict[key]}")
     experiment_name = "-".join(
         (
-            "experiment", model_name, dataset_name, mu, sigma
+            "experiment", dataset_name, sigma, base_sigma, mu
         )
     )
 
-    # dataset
-    dataset = [(None, None), (None, None)] # remove
-    #dataset = get_dataset(dataset_name)
+    collected_results = []
 
-    # smoothing and verification
-    results_list = []
-    for i_sample, (X, y) in enumerate(dataset):
-        logging.info(f"sample {i_sample}")
-        time_start = time.time()
+    def wandb_logger(current_results):
+        nonlocal collected_results
+        wandb.log(current_results)
+        collected_results.append(current_results)
 
-        # check the prediction -> smooth -> verify
+    alt_sigmas = {
+        0.0: 0.0,
+        0.12: 0.126,
+        0.25: 0.263,
+        0.5: 0.53,
+        1.0: 1.0
+    }
 
-        time_overall = time.time()-time_start
+    if mu is not None:
+        mu, mu_weight = mu.split("-", 1)
+        mu_weight = float(mu_weight)
+    else:
+        mu_weight = 0
 
-        # these results go to wandb (the configs are submitted authomatically)
-        results = {
-            "sample_index": i_sample,
-            "verified_radius": None,
-            "lipschitz_constant": None,
-            "time": {
-                "overall": time_overall
-            },
-        }
-        
-        results_list.append(results)
-        wandb.log(results)
+    out_dir = f"results/{dataset_name}/base_sigma_{base_sigma}"
+    if sigma is not None:
+        out_dir = os.path.join(out_dir, f'{sigma}')
+    if mu is not None:
+        out_dir = os.path.join(out_dir, f'{mu}')
 
-    # the returned result will be written into the database
-    return results_list
+    train_params = {
+        "out_dir": out_dir,
+        "base_sigma": base_sigma,
+        "biased": True,
+        "bias_weight": 0.0,
+        "var_func": sigma,
+        "bias_func": mu,
+    }
+    certify_params = {
+        "trained_classifier": os.path.join(out_dir, 'checkpoint.pth.tar'),
+        "biased": True,
+        "var_func": sigma,
+        "bias_func": mu,
+        "bias_weight": mu_weight,
+        "external_logger": wandb_logger,
+    }
+    if dataset_name == "toy":
+        train_params["dataset"] = "toy_dataset_linear_sep"
+        train_params["arch"] = "linear_model"
+        train_params["epochs"] = 10
+        train_params["batch"] = 200
+
+        certify_params["dataset"] = "toy_dataset_linear_sep"
+        certify_params["index_max"] = 90
+        certify_params["batch"] = 200
+    elif dataset_name == "cifar10":
+        train_params["dataset"] = dataset_name
+        train_params["arch"] = "cifar_resnet110"
+        train_params["batch"] = 400
+        if sigma is not None:
+            train_params["alt_sigma_aug"] = alt_sigmas[base_sigma]
+
+        certify_params["dataset"] = dataset_name
+        certify_params["batch"] = 400
+
+    logging.info("Start training procedure")
+    start = time.time()
+    main_train(**train_params)
+    end = time.time()
+    logging.info(f"Successfully finished training after {end-start} seconds")
+
+    if mu is not None:
+        out_dir = os.path.join(out_dir, f'mu_strength_{mu_weight}')
+
+    logging.info("Start certification procedure")
+    start = time.time()
+    main_certify(**certify_params)
+    end = time.time()
+    logging.info(f"Successfully finished certification after {end - start} seconds")
+
+    return collected_results
