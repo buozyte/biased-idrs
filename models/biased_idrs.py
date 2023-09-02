@@ -64,7 +64,7 @@ class BiasedIDRSClassifier(nn.Module):
         """
         
         if self.bias_func is None or self.bias_func == "":
-            return 0
+            return torch.zeros_like(x)
         
         if self.bias_func == "mu_toy":
             return bf.mu_toy(self.oracles, self.bias_weight, x_index, self.base_classifier, self.device)
