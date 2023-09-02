@@ -8,8 +8,8 @@ from wandb.sacred import WandbObserver
 import torch
 import numpy as np
 
-from train import main_train
-from certify import main_certify
+from ..train import main_train
+from ..certify import main_certify
 
 import time
 import os
