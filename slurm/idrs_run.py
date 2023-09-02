@@ -53,7 +53,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         logging.info(f"{key}: {config_dict[key]}")
     experiment_name = "-".join(
         (
-            "experiment", dataset_name, sigma, base_sigma, mu
+            "experiment", dataset_name, str(sigma), base_sigma, str(mu)
         )
     )
 
