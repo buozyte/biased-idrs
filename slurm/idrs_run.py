@@ -1,3 +1,7 @@
+import time
+import os
+import sys
+
 import logging
 from sacred import Experiment
 import seml
@@ -8,11 +12,10 @@ from wandb.sacred import WandbObserver
 import torch
 import numpy as np
 
-from ..train import main_train
-from ..certify import main_certify
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-import time
-import os
+from train import main_train
+from certify import main_certify
 
 
 project_name = "idrs"
