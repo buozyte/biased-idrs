@@ -1,8 +1,21 @@
 import time
+from scipy.stats import norm
 
 import numpy as np
 from rpy2.robjects import numpy2ri
 from rpy2.robjects.packages import importr
+
+
+def certified_radius_given_pa(sigma, p_a):
+    """
+    Computation of certified radius
+
+    :param sigma: base sigma
+    :param p_a: certain probability
+    :return: certified radius for the current point
+    """
+
+    return sigma * norm.ppf(p_a)
 
 
 def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r_computer=None, safe_option=False):
@@ -28,10 +41,10 @@ def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r
 
     # compute "true sigma"
     # --- CIFAR10 THRESHOLD --------------------------
-    # sigma_t = 0.9993 + 0.001 * np.log10(p_b)
+    sigma_t = 0.9993 + 0.001 * np.log10(p_b)
     # ------------------------------------------------
     # ---MNIST THRESHOLD -----------------------------
-    sigma_t = 0.9988 + 0.001 * np.log10(p_b)
+    # sigma_t = 0.9988 + 0.001 * np.log10(p_b)
     # ------------------------------------------------
     sigma_t = np.zeros_like(dists) + sigma_t * sigma_0
     sigmas_1_1 = np.exp(-r * dists) * sigma_0  # compute exact sigma_1
@@ -43,6 +56,7 @@ def input_dependent_certified_radius_given_pb(sigma_0, r, dim, p_b, num_steps, r
 
     # r_computer.qchisq(probabilities [array], degrees of freedom, non-centrality parameter)
     #    -> compute value of chi squared quantile function
+
     loc_radii[i] = np.asarray(
         r_computer.qchisq(p_b, dim, sigma_0 ** 2 / (sigma_0 ** 2 - true_sigmas[i] ** 2) ** 2 * dists[i] ** 2))
 
@@ -152,10 +166,10 @@ def biased_input_dependent_certified_radius_given_pb(sigma_0, r, lipschitz, dim,
 
     # compute "true sigma"
     # --- CIFAR10 THRESHOLD --------------------------
-    # sigma_t = 0.9993 + 0.001 * np.log10(p_b)
+    sigma_t = 0.9993 + 0.001 * np.log10(p_b)
     # ------------------------------------------------
     # ---MNIST THRESHOLD -----------------------------
-    sigma_t = 0.9988 + 0.001 * np.log10(p_b)
+    # sigma_t = 0.9988 + 0.001 * np.log10(p_b)
     # ------------------------------------------------
     sigma_t = np.zeros_like(dists) + sigma_t * sigma_0
     sigmas_1_1 = np.exp(-r * dists / (lipschitz + 1)) * sigma_0  # compute exact sigma_1

@@ -98,8 +98,8 @@ grid:
   mu:
     type: choice
     options:
-      - "knn-1.0"
-      - "knn-0.3"
-      - "knn-0.1"
+      - "mu_knn_based-1.0"
+      - "mu_knn_based-0.3"
+      - "mu_knn_based-0.1"
       # - "gradient"
       - None

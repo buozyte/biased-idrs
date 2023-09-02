@@ -83,15 +83,18 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         else:
             knns = torch.zeros(10000, num_channels, spatial_size, spatial_size)
         distances = torch.zeros(10000, 2)
+        mean_distances = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
             if bias_func == "mu_toy":
                 oracles[i * 100:(i + 1) * 100] = knn_computer.compute_knn_oracle(test_data, k=num_nearest_bias,
                                                                                  norm=norm)
             if bias_func == "mu_knn_based":
-                knns[i * 100:(i + 1) * 100, :], distances[i * 100:(i + 1) * 100,
-                                                :] = knn_computer.compute_knn_and_dists(test_data, norm=norm)
+                knns[i * 100:(i + 1) * 100, :], distances[i * 100:(i + 1) * 100, :] = knn_computer.compute_knn_and_dists(test_data, norm=norm)
+            if var_func == "sigma_knn":
+                mean_distances[i * 100:(i + 1) * 100] = knn_computer.compute_dist(test_data, num_nearest, norm)
 
         distances = distances.numpy()
+        mean_distances = mean_distances.numpy()
         oracles = oracles.numpy()
         if "toy" in dataset:
             oracles[oracles == 0] = -1
@@ -101,7 +104,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                                                    variance_func=var_func, oracles=oracles,
                                                    bias_weight=bias_weight, lipschitz=lipschitz_const,
                                                    knns=knns, distances=distances, rate=rate,
-                                                   m=norm_const).to(device)
+                                                   mean_distances=mean_distances, m=norm_const).to(device)
     elif id_var:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, num_workers, device)

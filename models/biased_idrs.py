@@ -6,7 +6,7 @@ from torch import nn
 from input_dependent_functions import bias_functions as bf
 from input_dependent_functions import variance_functions as vf
 
-from certified_radius import biased_input_dependent_certified_radius_given_pb
+from certified_radius import *
 
 
 # https://pytorch.org/docs/stable/generated/torch.nn.Module.html
@@ -18,7 +18,7 @@ class BiasedIDRSClassifier(nn.Module):
     """
 
     def __init__(self, base_classifier, num_classes, sigma, device, bias_func=None, variance_func=None, oracles=None,
-                 bias_weight=1, lipschitz=0, knns=None, distances=None, rate=0, m=0, abstain=-1):
+                 bias_weight=1, lipschitz=0, knns=None, distances=None, rate=0, mean_distances=None, m=0, abstain=-1):
         """
         Initialize the randomly smoothed classifier
 
@@ -32,6 +32,7 @@ class BiasedIDRSClassifier(nn.Module):
         :param knns: k-nearest neighbours for each sample
         :param distances: according distances for every sample to its k-nearest neighbours
         :param rate: semi-elasticity constant for chosen sigma function
+        :param mean_distances: mean of distances for every sample to its k-nearest neighbours
         :param m: normalization constant for data set
         :param abstain: value to be returned when smoothed classifier should abstain
         """
@@ -44,13 +45,16 @@ class BiasedIDRSClassifier(nn.Module):
         self.device = device
 
         self.bias_func = bias_func
+        self.biased_cr = (bias_func is not None)
         self.variance_func = variance_func
+        self.var_id_cr = (variance_func is not None)
         self.oracles = oracles
         self.bias_weight = bias_weight
         self.lipschitz = lipschitz
         self.distances = distances
         self.knns = knns
         self.rate = rate
+        self.mean_distances = mean_distances
         self.m = m
         self.abstain = abstain
 
@@ -71,6 +75,8 @@ class BiasedIDRSClassifier(nn.Module):
         if self.bias_func == "mu_knn_based":
             return bf.mu_nearest_neighbour(x, x_index, self.knns, self.distances, self.device)
 
+        return torch.zeros_like(x)
+
     def sigma_id(self, x_index):
         """
         Compute the variance based on the chosen variance function and the according parameters.
@@ -83,7 +89,9 @@ class BiasedIDRSClassifier(nn.Module):
             return self.sigma
         
         if self.variance_func == "sigma_knn":
-            return vf.sigma_knn(self.sigma, self.rate, self.m, self.distances, x_index)
+            return vf.sigma_knn(self.sigma, self.rate, self.m, self.mean_distances, x_index)
+
+        return self.sigma
 
     def sample_under_noise(self, x, x_index, n, batch_size):
         """
@@ -197,8 +205,13 @@ class BiasedIDRSClassifier(nn.Module):
 
         if p_a > 0.5:
             sigma_0 = self.sigma_id(x_index)
-            radius = biased_input_dependent_certified_radius_given_pb(sigma_0, self.lipschitz, self.rate, dim, 1 - p_a,
-                                                                      num_steps)
+            if self.biased_cr:
+                radius = biased_input_dependent_certified_radius_given_pb(sigma_0, self.lipschitz, self.rate, dim,
+                                                                          1 - p_a, num_steps)
+            elif self.var_id_cr:
+                radius = input_dependent_certified_radius_given_pb(sigma_0, self.rate, dim, 1 - p_a, num_steps)
+            else:
+                radius = certified_radius_given_pa(sigma_0, p_a)
             return c_a, radius
         return self.abstain, 0.0
 
