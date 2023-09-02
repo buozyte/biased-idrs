@@ -94,6 +94,8 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
     }
     certify_params = {
         "trained_classifier": os.path.join(out_dir, 'checkpoint.pth.tar'),
+        "out_dir": out_dir,
+        "base_sigma": base_sigma,
         "biased": True,
         "var_func": sigma,
         "bias_func": mu,
