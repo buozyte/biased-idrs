@@ -51,6 +51,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
     logging.info("Received the following configuration")
     for key in configs_to_print:
         logging.info(f"{key}: {config_dict[key]}")
+    logging.info("Test if out of sync")
     experiment_name = "-".join(
         (
             "experiment", dataset_name, str(sigma), base_sigma, str(mu)
