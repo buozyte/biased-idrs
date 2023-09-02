@@ -10,4 +10,6 @@ trained_models/*
 logs/
 
 slurm/idrs_config.yaml
+slurm/results/*
+slurm/ddataset_cache/*
 **/wandb

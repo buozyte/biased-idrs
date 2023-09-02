@@ -8,10 +8,6 @@ import seml
 import wandb
 from wandb.sacred import WandbObserver
 
-# ADD YOUR PACKAGES
-import torch
-import numpy as np
-
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from train import main_train
@@ -34,7 +30,7 @@ def config():
     db_collection = None
     if db_collection is not None:
         ex.observers.append(seml.create_mongodb_observer(db_collection, overwrite=overwrite))
-        ex.observers.append(WandbObserver(config={"project": project_name}, reinit=False))
+        ex.observers.append(WandbObserver(config={"project": project_name}))  # , reinit=False))
 
 
 @ex.automain
@@ -56,6 +52,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
             "experiment", dataset_name, str(sigma), str(base_sigma), str(mu)
         )
     )
+    wandb.init(name=experiment_name)
 
     collected_results = []
 
@@ -83,6 +80,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         out_dir = os.path.join(out_dir, f'{sigma}')
     if mu is not None:
         out_dir = os.path.join(out_dir, f'{mu}')
+        out_dir = os.path.join(out_dir, f'mu_weight_{mu_weight}')
 
     train_params = {
         "out_dir": out_dir,
