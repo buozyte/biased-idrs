@@ -36,7 +36,7 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # --- prepare data ---
     train_dataset = get_dataset(dataset, 'train')

@@ -22,7 +22,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                  id_var=False, num_nearest=20, var_func=None, rate=0.01, biased=False, num_nearest_bias=5,
                  bias_weight=1, bias_func=None, lipschitz_const=0.0, external_logger=None):
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # if id_var:
     #     add_model_type = "_id"
