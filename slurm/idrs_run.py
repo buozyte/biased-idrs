@@ -8,8 +8,11 @@ import seml
 import wandb
 from wandb.sacred import WandbObserver
 
-# sys.path.insert(1, os.path.join(sys.path[0], '..'))
-sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
+# I'm really sorry for the following lines
+for path in sys.path:
+    if os.path.basename(path) == "slurm":
+        sys.path.insert(1, os.path.dirname(path))
+        break
 
 from train import main_train
 from certify import main_certify
