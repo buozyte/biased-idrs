@@ -8,7 +8,8 @@ import seml
 import wandb
 from wandb.sacred import WandbObserver
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
+# sys.path.insert(1, os.path.join(sys.path[0], '..'))
+sys.path.insert(1, os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0]))))
 
 from train import main_train
 from certify import main_certify
@@ -30,7 +31,7 @@ def config():
     db_collection = None
     if db_collection is not None:
         ex.observers.append(seml.create_mongodb_observer(db_collection, overwrite=overwrite))
-        ex.observers.append(WandbObserver(config={"project": project_name}))  # , reinit=False))
+        ex.observers.append(WandbObserver(config={"project": project_name}, reinit=False))
 
 
 @ex.automain
@@ -52,7 +53,6 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
             "experiment", dataset_name, str(sigma), str(base_sigma), str(mu)
         )
     )
-    wandb.init(name=experiment_name)
 
     collected_results = []
 
