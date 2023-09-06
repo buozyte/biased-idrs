@@ -83,7 +83,7 @@ grid:
   base_sigma:
     type: choice
     options:
-      - 0.0
+      # - 0.0
       - 0.12
       - 0.25
       - 0.5

@@ -169,12 +169,19 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         print("{}\t{}\t{}\t{}\t{}\t{}".format(
             i, label, prediction, radius, correct, time_elapsed), file=f, flush=True)
 
+        correct_sum += correct
+        certified_sum += 1
+
         if external_logger is not None:
             current_result = {
                 "sample_index": i,
+                "num_samples": certified_sum,
                 "true_label": label,
                 "predicted_label": prediction,
-                "correctly_predicted": correct,
+                "correct": {
+                    "current_sample": correct,
+                    "overall": correct_sum,
+                },
                 "certified_radius": radius,
                 "time": {
                     "elapsed": time_elapsed,
@@ -182,9 +189,6 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                 }
             }
             external_logger(current_result)
-
-        correct_sum += correct
-        certified_sum += 1
 
     print(" ", file=f, flush=True)
     print(f"Total correct / total certified: {correct_sum} / {certified_sum}", file=f, flush=True)
