@@ -57,7 +57,7 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
         spatial_size = 28
         num_channels = 1
         norm_const = 1.5
-    elif "toy" in dataset:
+    elif dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
         spatial_size = 2
         num_channels = 0
         norm_const = 0
@@ -145,17 +145,17 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
             'optimizer': optimizer.state_dict(),
         }, os.path.join(out_dir, 'checkpoint.pth.tar'))
 
-    if "toy" in dataset:
-        if bias_func == "mu_toy":
-            train_dataset.visualize_with_classifier_oracle_based(model, bias_weight=bias_weight,
-                                                                 file_path=out_dir)
-            test_dataset.visualize_with_classifier_oracles_based(model, bias_weight=bias_weight,
-                                                                 file_path=out_dir)
-        elif bias_func == "mu_knn_based":
-            train_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
-                                                              file_path=out_dir)
-            test_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
-                                                             file_path=out_dir)
+    # if "toy" in dataset:
+    #     if bias_func == "mu_toy":
+    #         train_dataset.visualize_with_classifier_oracle_based(model, bias_weight=bias_weight,
+    #                                                              file_path=out_dir)
+    #         test_dataset.visualize_with_classifier_oracles_based(model, bias_weight=bias_weight,
+    #                                                              file_path=out_dir)
+    #     elif bias_func == "mu_knn_based":
+    #         train_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
+    #                                                           file_path=out_dir)
+    #         test_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
+    #                                                          file_path=out_dir)
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,

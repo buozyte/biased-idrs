@@ -112,6 +112,15 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         certify_params["dataset"] = "toy_dataset_linear_sep"
         certify_params["index_max"] = 90
         certify_params["batch"] = 200
+    elif dataset_name == "cone_toy":
+        train_params["dataset"] = "toy_dataset_cone_shaped"
+        train_params["arch"] = "toy_model"
+        train_params["epochs"] = 10
+        train_params["batch"] = 200
+
+        certify_params["dataset"] = "toy_dataset_cone_shaped"
+        certify_params["index_max"] = 90
+        certify_params["batch"] = 200
     elif dataset_name == "cifar10":
         train_params["dataset"] = dataset_name
         train_params["arch"] = "cifar_resnet110"

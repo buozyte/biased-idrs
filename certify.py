@@ -60,7 +60,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         spatial_size = 28
         num_channels = 1
         norm_const = 1.5
-    elif "toy" in dataset:
+    elif dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
         spatial_size = 2
         num_channels = 0
         norm_const = 0
@@ -125,7 +125,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
 
-    if "toy" in dataset:
+    if dataset == "toy_dataset_linear_sep":
         if not biased:
             oracles = None
             knns = None
@@ -140,6 +140,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                                                               file_path=out_dir)
             test_dataset.visualize_with_classifier_knn_based(smoothed_classifier, bias_weight=bias_weight,
                                                              knns=knns, distances=distances, file_path=out_dir)
+
 
     correct_sum = 0
     certified_sum = 0
