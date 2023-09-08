@@ -141,7 +141,6 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
             test_dataset.visualize_with_classifier_knn_based(smoothed_classifier, bias_weight=bias_weight,
                                                              knns=knns, distances=distances, file_path=out_dir)
 
-
     correct_sum = 0
     certified_sum = 0
     overall_time_start = time()

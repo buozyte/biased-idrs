@@ -4,6 +4,10 @@ import torch
 import os
 from torch.utils.data import Dataset
 
+# potential new toy dataset:
+# sklearn.datasets.make_blobs(n_samples=num, n_features=2, centers=4, random_state=42)
+# -> find suitable model?
+
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 # SEPARATOR = np.array([[-0.11588811,  1.11743863], [2.65907856,  0.18417988]])

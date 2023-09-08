@@ -63,3 +63,30 @@ def mu_nearest_neighbour(x, x_index, nearest_neighbours, distances, device, bias
     dist_weight = np.min([x_distances[0], np.sqrt(x_distances[0] * (x_distances[1] - x_distances[0]))])
 
     return bias_weight * dist_weight * (nearest_neighbours[x_index][0].to(device) - x)
+
+
+def mu_gradient(alt_classifier, x, device, bias_weight=1):
+    """
+    Input-dependent function to compute a bias based using a trained alternative classifier h and it's gradient.
+    Specifically, the directional vector is derived via the gradient of the logit difference
+    h_{i}(x) - max_{j!=i} h_{j}(x) where i is the predicted label for x by h.
+
+    :param alt_classifier: pre-trained alternative classifier for the given setting
+    :param x: current sample
+    :param device: pytorch device handling
+    :param bias_weight: "weight" of the bias
+    :return: bias w.r.t. current input
+    """
+
+    output = alt_classifier(x)
+    _, (top1, top2) = torch.topk(output, 2)
+    # compute the full jacobian of the alternative classifier at x
+    full_jacobian = torch.autograd.functional.jacobian(alt_classifier, x)
+    # derivative of h_i w.r.t. input = i-th row of jacobian
+    grad_h_i = full_jacobian[top1]
+    grad_h_j = full_jacobian[top2]
+
+    # TODO: define a strength
+    strength = 1
+
+    return bias_weight * strength * (grad_h_i - grad_h_j)
