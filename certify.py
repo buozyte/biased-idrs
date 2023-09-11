@@ -74,6 +74,11 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
     # create the smoothed classifier g
     num_classes = get_num_classes(dataset)
     if biased:
+        # TODO: load pre-trained classifier (or find other solution, e.g. other function, to set the classfier)
+        alt_classifier = None  # depends on chosen dataset
+        
+        # computation of KNN related values (for variance and bias)
+        # ---------------------------------------------------------
         knn_computer = KNNDistComp(train_dataset, num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False, num_workers=0, pin_memory=False)
 
@@ -98,13 +103,15 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         oracles = oracles.numpy()
         if "toy" in dataset:
             oracles[oracles == 0] = -1
+        # ---------------------------------------------------------
 
         smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                    sigma=base_sigma, device=device, bias_func=bias_func,
                                                    variance_func=var_func, oracles=oracles,
                                                    bias_weight=bias_weight, lipschitz=lipschitz_const,
                                                    knns=knns, distances=distances, rate=rate,
-                                                   mean_distances=mean_distances, m=norm_const).to(device)
+                                                   mean_distances=mean_distances, m=norm_const,
+                                                   alt_classifier=alt_classifier).to(device)
     elif id_var:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, num_workers, device)

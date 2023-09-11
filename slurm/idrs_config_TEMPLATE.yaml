@@ -101,5 +101,7 @@ grid:
       - "mu_knn_based-1.0"
       - "mu_knn_based-0.3"
       - "mu_knn_based-0.1"
-      # - "gradient"
+      # - "mu_gradient_based-1.0"
+      # - "mu_gradient_based-0.3"
+      # - "mu_gradient_based-0.1"
       - None
