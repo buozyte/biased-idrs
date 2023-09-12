@@ -7,6 +7,7 @@ import os
 from torch.utils.data import Dataset
 from toy_datasets import ToyDatasetLinearSeparationTrain, ToyDatasetLinearSeparationTest
 from toy_datasets import ToyDatasetConeShapedTrain, ToyDatasetConeShapedTest
+from toy_datasets import ToyDatasetBlobsTrain, ToyDatasetBlobsTest
 
 # set this environment variable to the location of your imagenet directory if you want to read ImageNet data.
 # make sure your val directory is preprocessed to look like the train directory, e.g. by running this script
@@ -15,7 +16,7 @@ IMAGENET_LOC_ENV = "IMAGENET_DIR"
 
 # list of all datasets
 # DATASETS = ["imagenet", "cifar10", "unaugmented_cifar10", "mnist", "unaugmented_mnist", "toy_dataset_linear_sep"]
-DATASETS = ["cifar10", "toy_dataset_linear_sep", "toy_dataset_cone_shaped"]
+DATASETS = ["cifar10", "toy_dataset_linear_sep", "toy_dataset_blobs", "toy_dataset_cone_shaped"]
 
 
 def get_dataset(dataset: str, split: str) -> Dataset:
@@ -35,6 +36,8 @@ def get_dataset(dataset: str, split: str) -> Dataset:
         return _unaugmented_mnist(split)
     elif dataset == "toy_dataset_linear_sep":
         return _toy_dataset_linear_sep(split)
+    elif dataset == "toy_dataset_blobs":
+        return _toy_dataset_blobs(split)
     elif dataset == "toy_dataset_cone_shaped":
         return _toy_dataset_cone_shaped(split)
 
@@ -136,6 +139,13 @@ def _toy_dataset_linear_sep(split: str) -> Dataset:
         return ToyDatasetLinearSeparationTrain(500, 1, -1)
     elif split == "test":
         return ToyDatasetLinearSeparationTest(100, 1, -1)
+
+
+def _toy_dataset_blobs(split: str) -> Dataset:
+    if split == "train":
+        return ToyDatasetBlobsTrain(500)
+    elif split == "test":
+        return ToyDatasetBlobsTest(100)
 
 
 def _toy_dataset_cone_shaped(split: str) -> Dataset:

@@ -60,7 +60,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         spatial_size = 28
         num_channels = 1
         norm_const = 1.5
-    elif dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
+    elif "toy_dataset" in dataset:  # dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
         spatial_size = 2
         num_channels = 0
         norm_const = 0
@@ -74,11 +74,8 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
     # create the smoothed classifier g
     num_classes = get_num_classes(dataset)
     if biased:
-        # TODO: load pre-trained classifier (or find other solution, e.g. other function, to set the classfier)
-        alt_classifier = None  # depends on chosen dataset
-        
-        # computation of KNN related values (for variance and bias)
         # ---------------------------------------------------------
+        # computation of KNN related values (for variance and bias)
         knn_computer = KNNDistComp(train_dataset, num_workers, device)
         test_dataloader = DataLoader(test_dataset, batch_size=100, shuffle=False, num_workers=0, pin_memory=False)
 
@@ -110,8 +107,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                                                    variance_func=var_func, oracles=oracles,
                                                    bias_weight=bias_weight, lipschitz=lipschitz_const,
                                                    knns=knns, distances=distances, rate=rate,
-                                                   mean_distances=mean_distances, m=norm_const,
-                                                   alt_classifier=alt_classifier).to(device)
+                                                   mean_distances=mean_distances, m=norm_const).to(device)
     elif id_var:
         # obtain knn distances of test data
         dist_computer = KNNDistComp(train_dataset, num_workers, device)
@@ -131,6 +127,16 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                                            sigma=base_sigma, device=device).to(device)
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
+    # TODO:
+    #   1. use real alternative classifiers
+    #   2. maybe find a nicer way to set/pass the alternative classifier
+    #   3. handle possibility to choose different alternative classifiers for (each) dataset -> via if cases
+    if biased and "gradient" in bias_func:
+        # just for testing :)
+        alt_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+                                                      sigma=0.25, device=device).to(device)
+        alt_classifier.load_state_dict(checkpoint['state_dict'])
+        smoothed_classifier.alt_classifier = alt_classifier
 
     if dataset == "toy_dataset_linear_sep":
         if not biased:

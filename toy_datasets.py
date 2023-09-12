@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import torch
 import os
 from torch.utils.data import Dataset
+from sklearn.datasets import make_blobs
 
 # potential new toy dataset:
 # sklearn.datasets.make_blobs(n_samples=num, n_features=2, centers=4, random_state=42)
@@ -277,6 +278,56 @@ class ToyDatasetLinearSeparationTest(Dataset):
 
         visualize_dataset_with_classifier_knn_based(self.data, self.labels, ls, model, bias_weight, knns, distances,
                                                     show, save, file_path, add_file_name, False)
+
+    def __getitem__(self, item):
+        return self.data[item], self.labels[item]
+
+    def __len__(self):
+        return len(self.labels)
+
+
+class ToyDatasetBlobsTrain(Dataset):
+    """
+    Linearly separated data.
+    """
+
+    def __init__(self, num):
+        data, labels = make_blobs(n_samples=num, centers=2, random_state=42, cluster_std=1)
+
+        shuffling = np.random.permutation(len(labels))
+        data = data[shuffling]
+        labels = labels[shuffling]
+
+        data = torch.Tensor(data)
+        labels = torch.Tensor(labels)  # .reshape(-1, 1)
+
+        self.data = data
+        self.labels = labels
+
+    def __getitem__(self, item):
+        return self.data[item], self.labels[item]
+
+    def __len__(self):
+        return len(self.labels)
+
+
+class ToyDatasetBlobsTest(Dataset):
+    """
+    Linearly separated data.
+    """
+
+    def __init__(self, num):
+        data, labels = make_blobs(n_samples=num, centers=2, random_state=42, cluster_std=3)
+
+        shuffling = np.random.permutation(len(labels))
+        data = data[shuffling]
+        labels = labels[shuffling]
+
+        data = torch.Tensor(data)
+        labels = torch.Tensor(labels)  # .reshape(-1, 1)
+
+        self.data = data
+        self.labels = labels
 
     def __getitem__(self, item):
         return self.data[item], self.labels[item]

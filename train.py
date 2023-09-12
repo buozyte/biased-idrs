@@ -57,7 +57,7 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
         spatial_size = 28
         num_channels = 1
         norm_const = 1.5
-    elif dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
+    elif "toy_dataset" in dataset:  # dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
         spatial_size = 2
         num_channels = 0
         norm_const = 0
