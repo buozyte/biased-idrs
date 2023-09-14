@@ -117,7 +117,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
     #   1. use real alternative classifiers
     #   2. maybe find a nicer way to set/pass the alternative classifier
     #   3. handle possibility to choose different alternative classifiers for (each) dataset -> via if cases
-    if biased and "gradient" in bias_func:
+    if biased and bias_func is not None and "gradient" in bias_func:
         # just for testing :)
         alt_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                       sigma=0.25, device=device).to(device)
