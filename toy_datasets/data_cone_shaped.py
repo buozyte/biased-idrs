@@ -2,9 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset
-
+import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 
 def generate_first_class(num, df, scale, angle):
     length = np.sqrt(np.random.chisquare(df=df, size=num) * scale)

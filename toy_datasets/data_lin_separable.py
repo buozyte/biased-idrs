@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import torch
 import os
 from torch.utils.data import Dataset
-from sklearn.datasets import make_blobs
-
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 

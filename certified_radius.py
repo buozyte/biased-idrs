@@ -1,4 +1,4 @@
-# TODO: derive threshold for other data sets
+# TODO: derive threshold for other data sets -> see Appendix, Section D in IDRS paper
 # TODO: make "threshold choice dynamic", i.e. threshold should depend on chosen dataset
 
 import time

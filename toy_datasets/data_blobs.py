@@ -2,9 +2,10 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from sklearn.datasets import make_blobs
-
+import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 
 class ToyDatasetBlobsTrain(Dataset):
     """
