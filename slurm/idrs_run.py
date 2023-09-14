@@ -131,6 +131,9 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         certify_params["dataset"] = dataset_name
         certify_params["batch"] = 400
 
+    if mu == "mu_knn_based":
+        certify_params["lipschitz_const"] = 1.0 * mu_weight
+
     logging.info("Start training procedure")
     start = time.time()
     main_train(**train_params)

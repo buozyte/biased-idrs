@@ -58,7 +58,8 @@ def mu_nearest_neighbour(x, x_index, nearest_neighbours, distances, device):
     """
 
     x_distances = distances[x_index]
-    dist_weight = np.min([x_distances[0], np.sqrt(x_distances[0] * (x_distances[1] - x_distances[0]))])
+    # dist_weight = np.min([x_distances[0], np.sqrt(x_distances[0] * (x_distances[1] - x_distances[0]))])
+    dist_weight = np.min([x_distances[0], (x_distances[1] - x_distances[0])])
 
     return dist_weight * (nearest_neighbours[x_index][0].to(device) - x)
 
