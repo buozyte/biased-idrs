@@ -1,3 +1,5 @@
+# NOTE: not updated -> obsolete, use "certify" script instead
+
 # evaluate a smoothed classifier on a dataset
 import argparse
 import datetime

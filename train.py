@@ -28,11 +28,6 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
     if gpu:
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu
 
-    # if biased:
-    #     if bias_func is not None:
-    #         out_dir = os.path.join(out_dir, f'{bias_func}')
-    #     if var_func is not None:
-    #         out_dir = os.path.join(out_dir, f'{var_func}')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
 
@@ -144,18 +139,6 @@ def main_train(dataset, arch, out_dir, num_workers=2, epochs=90, batch=256, lr=0
             'state_dict': model.state_dict(),
             'optimizer': optimizer.state_dict(),
         }, os.path.join(out_dir, 'checkpoint.pth.tar'))
-
-    # if "toy" in dataset:
-    #     if bias_func == "mu_toy":
-    #         train_dataset.visualize_with_classifier_oracle_based(model, bias_weight=bias_weight,
-    #                                                              file_path=out_dir)
-    #         test_dataset.visualize_with_classifier_oracles_based(model, bias_weight=bias_weight,
-    #                                                              file_path=out_dir)
-    #     elif bias_func == "mu_knn_based":
-    #         train_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
-    #                                                           file_path=out_dir)
-    #         test_dataset.visualize_with_classifier_knn_based(model, bias_weight=bias_weight,
-    #                                                          file_path=out_dir)
 
 
 def train(loader: DataLoader, model: torch.nn.Module, criterion, optimizer: Optimizer, base_sigma: float,

@@ -24,24 +24,10 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # if id_var:
-    #     add_model_type = "_id"
-    # elif biased:
-    #     add_model_type = "_biased_id"
-    # else:
-    #     add_model_type = ""
-
     # load the base classifier
     checkpoint = torch.load(trained_classifier)  # if I wanna use cuda, delete the map_location argument
     base_classifier = get_architecture(checkpoint["arch"], dataset, device)
 
-    # prepare output file
-    # if biased:
-    #     # out_dir = os.path.join(out_dir, f'bias_{bias_weight}')
-    #     if bias_func is not None:
-    #         out_dir = os.path.join(out_dir, f'{bias_func}')
-    #     if var_func is not None:
-    #         out_dir = os.path.join(out_dir, f'{var_func}')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
     outfile = os.path.join(out_dir, 'results.txt')

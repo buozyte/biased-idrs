@@ -5,9 +5,9 @@ from typing import *
 import torch
 import os
 from torch.utils.data import Dataset
-from toy_datasets import ToyDatasetLinearSeparationTrain, ToyDatasetLinearSeparationTest
-from toy_datasets import ToyDatasetConeShapedTrain, ToyDatasetConeShapedTest
-from toy_datasets import ToyDatasetBlobsTrain, ToyDatasetBlobsTest
+from toy_datasets.data_lin_separable import ToyDatasetLinearSeparationTrain, ToyDatasetLinearSeparationTest
+from toy_datasets.data_cone_shaped import ToyDatasetConeShapedTrain, ToyDatasetConeShapedTest
+from toy_datasets.data_blobs import ToyDatasetBlobsTrain, ToyDatasetBlobsTest
 
 # set this environment variable to the location of your imagenet directory if you want to read ImageNet data.
 # make sure your val directory is preprocessed to look like the train directory, e.g. by running this script

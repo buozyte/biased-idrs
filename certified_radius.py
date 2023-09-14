@@ -1,3 +1,6 @@
+# TODO: derive threshold for other data sets
+# TODO: make "threshold choice dynamic", i.e. threshold should depend on chosen dataset
+
 import time
 from scipy.stats import norm
 
