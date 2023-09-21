@@ -209,8 +209,6 @@ class BiasedIDRSClassifier(nn.Module):
 
         if p_a > 0.5:
             sigma_0 = self.sigma_id(x_index)
-            if sigma_0 == 0:
-                return c_a, 0
             if self.biased_cr:
                 radius = biased_input_dependent_certified_radius_given_pb(sigma_0, self.lipschitz, self.rate, dim,
                                                                           1 - p_a, num_steps)
