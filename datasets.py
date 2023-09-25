@@ -46,6 +46,8 @@ def get_num_classes(dataset: str):
     """Return the number of classes in the dataset. """
     if dataset == "imagenet":
         return 1000
+    elif "blob" in dataset:
+        return 4
     elif "toy_dataset" in dataset:
         return 2
     else:
