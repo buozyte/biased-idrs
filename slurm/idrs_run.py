@@ -112,6 +112,15 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         certify_params["dataset"] = "toy_dataset_linear_sep"
         certify_params["index_max"] = 90
         certify_params["batch"] = 200
+    if dataset_name == "toy_blobs":
+        train_params["dataset"] = "toy_dataset_blobs"
+        train_params["arch"] = "linear_blob_model"
+        train_params["epochs"] = 5
+        train_params["batch"] = 200
+
+        certify_params["dataset"] = "toy_dataset_blobs"
+        certify_params["index_max"] = 90
+        certify_params["batch"] = 200
     elif dataset_name == "cone_toy":
         train_params["dataset"] = "toy_dataset_cone_shaped"
         train_params["arch"] = "toy_model"

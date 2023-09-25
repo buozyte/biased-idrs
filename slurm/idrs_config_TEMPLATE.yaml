@@ -78,6 +78,7 @@ grid:
     type: choice
     options:
       - "toy"
+      - "toy_blobs"
       - "cifar10"
 
   base_sigma:
