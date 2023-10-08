@@ -47,7 +47,8 @@ def mu_toy_train(labels, orthogonal_vector, device, input_dim=2):
 
 def mu_nearest_neighbour(x, x_index, nearest_neighbours, distances, device):
     """
-    Input-dependent function to compute a bias based on the direction from the current sample to it's nearest neighbour.
+    Input-dependent function to compute a bias based on the direction from
+    the current sample to it's nearest neighbour.
 
     :param x: current sample
     :param x_index: index of the current point
@@ -60,15 +61,48 @@ def mu_nearest_neighbour(x, x_index, nearest_neighbours, distances, device):
     x_distances = distances[x_index]
     # dist_weight = np.min([x_distances[0], np.sqrt(x_distances[0] * (x_distances[1] - x_distances[0]))])
     dist_weight = np.min([x_distances[0], (x_distances[1] - x_distances[0])])
+    # NOTE: correct scaling:
+    # dist_weight = np.min([1, x_distances[1] / x_distances[0] - 1])
 
     return dist_weight * (nearest_neighbours[x_index][0].to(device) - x)
 
 
+def mu_nearest_neighbour_fcn(x, nearest_neighbours_fcn, distances_fcn, device):
+    """
+    Input-dependent function to compute a bias based on the direction from
+    the current sample to it's nearest neighbour.
+
+    :param x: current sample
+    :param nearest_neighbours_fcn: function returning the k-NNs
+    :param distances_fcn: function returning the according distance to the k-NNs
+    :param device: pytorch device handling
+    :return: bias w.r.t. current input
+    """
+
+    x_distances = distances_fcn(x)
+    dist_weight = torch.min(x_distances[0], x_distances[1] - x_distances[0]) / x_distances[0]
+
+    return dist_weight * (nearest_neighbours_fcn(x)[0].to(device) - x)
+
+
+def mu_constant_fcn(x, bias):
+    """
+    Constant bias function.
+
+    :param x: current sample
+    :param bias: constant bias
+    :return: bias
+    """
+
+    return bias
+
+
 def mu_gradient(alt_classifier, x, device):
     """
-    Input-dependent function to compute a bias based using a trained alternative classifier h and it's gradient.
-    Specifically, the directional vector is derived via the gradient of the logit difference
-    h_{i}(x) - max_{j!=i} h_{j}(x) where i is the predicted label for x by h.
+    Input-dependent function to compute a bias based using a trained alternative
+    classifier h and it's gradient. Specifically, the directional vector is derived
+    via the gradient of the logit difference h_{i}(x) - max_{j!=i} h_{j}(x) where
+    i is the predicted label for x by h.
 
     :param alt_classifier: pre-trained alternative classifier for the given setting
     :param x: current sample
