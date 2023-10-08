@@ -158,7 +158,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
 
         dim = torch.prod(torch.tensor(inputs.shape))
         if id_var or biased:
-            prediction, radius = smoothed_classifier.certify(inputs, i, N0, N, alpha, batch, 0, 1000)
+            prediction, radius = smoothed_classifier.certify(inputs, i, N0, N, alpha, batch, dim.item(), 1000)
         else:
             prediction, radius = smoothed_classifier.certify(inputs, N0, N, alpha, batch)
         after_time = time()

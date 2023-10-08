@@ -163,7 +163,7 @@ class BiasedIDRSClassifier(nn.Module):
         top_2_counts = torch.topk(counts, k=2)
         n_a, n_b = top_2_counts.values
 
-        if binom_test(n_a, n_a + n_b, 0.5) <= alpha:
+        if binom_test(n_a.cpu(), n_a.cpu() + n_b.cpu(), 0.5) <= alpha:
             return top_2_counts.indices[0].item()
         return self.abstain
 
@@ -209,8 +209,6 @@ class BiasedIDRSClassifier(nn.Module):
 
         if p_a > 0.5:
             sigma_0 = self.sigma_id(x_index)
-            if sigma_0 == 0:
-                return c_a, 0
             if self.biased_cr:
                 radius = biased_input_dependent_certified_radius_given_pb(sigma_0, self.lipschitz, self.rate, dim,
                                                                           1 - p_a, num_steps)

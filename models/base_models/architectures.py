@@ -11,7 +11,7 @@ from datasets import get_normalize_layer
 # mnist_resnet20 - a 20-layer residual network sized for MNIST
 # cifar_resnet20 - a 20-layer residual network sized for CIFAR
 # cifar_resnet110 - a 110-layer residual network sized for CIFAR
-ARCHITECTURES = ["resnet50", "cifar_resnet20", "cifar_resnet110", "mnist_resnet20", "toy_model", "linear_model"]
+ARCHITECTURES = ["resnet50", "cifar_resnet20", "cifar_resnet110", "mnist_resnet20", "toy_model", "linear_model", "linear_blob_model"]
 
 
 def get_architecture(arch: str, dataset: str, device) -> torch.nn.Module:
@@ -33,6 +33,9 @@ def get_architecture(arch: str, dataset: str, device) -> torch.nn.Module:
         model = resnet_mnist(depth=20, num_classes=10).to(device)
     elif arch == "linear_model":
         model = LinearModel(input_dim=2, num_classes=2)
+        return model
+    elif arch == "linear_blob_model":
+        model = LinearModel(input_dim=2, num_classes=4)
         return model
     elif arch == "toy_model":
         model = ToyModel(input_dim=2, num_classes=2)

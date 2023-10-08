@@ -17,26 +17,14 @@ class KNNDistComp:
         """
 
         self.main_data = main_data
-        self.num_samples = len(main_data)
+        self.num_samples = len(self.main_data)
         self.main_dataloader = DataLoader(self.main_data,
                                           shuffle=False,
                                           batch_size=self.num_samples,
                                           num_workers=num_workers,
                                           pin_memory=False)
         self.device = device
-
-    def _obtain_data(self):
-        """
-        Set parameters for data objects and push them to correct device.
-
-        :return: correct data
-        """
-
-        data = None
-        for (data_, _) in self.main_dataloader:
-            data = data_.to(self.device)
-        data.requires_grad = False
-        return data
+        self.raw_data, self.raw_labels = self._obtain_data_with_labels()
 
     def _obtain_data_with_labels(self):
         """
@@ -65,13 +53,12 @@ class KNNDistComp:
         """
 
         data = data.to(self.device)
-        raw_data, raw_labels = self._obtain_data_with_labels()
 
         dists = torch.cdist(data.reshape((len(data), -1)),
-                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+                            self.raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         sorted_indices = dists.argsort(dim=1)
-        return raw_labels[sorted_indices[:, 0]]
+        return self.raw_labels[sorted_indices[:, 0]]
 
     def compute_knn_oracle(self, data, k=5, norm=2):
         """
@@ -85,13 +72,12 @@ class KNNDistComp:
         """
 
         data = data.to(self.device)
-        raw_data, raw_labels = self._obtain_data_with_labels()
 
         dists = torch.cdist(data.reshape((len(data), -1)),
-                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+                            self.raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         sorted_indices = dists.argsort(dim=1)
-        oracles, _ = torch.mode(raw_labels[sorted_indices[:, 0:k]], dim=1)
+        oracles, _ = torch.mode(self.raw_labels[sorted_indices[:, 0:k]], dim=1)
         return oracles
 
     def compute_knn_and_dists(self, data, norm=2):
@@ -106,16 +92,15 @@ class KNNDistComp:
         """
 
         data = data.to(self.device)
-        raw_data, raw_labels = self._obtain_data_with_labels()
 
         # compute distances from each data point to each base data point
         dists = torch.cdist(data.reshape((len(data), -1)),
-                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+                            self.raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         # sort the distances + sort the base data points and their labels according to the distances w.r.t. input data
         sorted_dists, sorted_indices = dists.sort(dim=1)
-        knn = raw_data[sorted_indices[:, 0]]
-        knn_labels = raw_labels[sorted_indices[:, :]]
+        knn = self.raw_data[sorted_indices[:, 0]]
+        knn_labels = self.raw_labels[sorted_indices[:, :]]
 
         # determine label of NN -> blow up to same shape as knn_labels data
         blow_up_l = knn_labels[:, 0].unsqueeze(dim=1).repeat_interleave(knn_labels.shape[1], dim=1).to(self.device)
@@ -143,13 +128,12 @@ class KNNDistComp:
         """
 
         data = data.to(self.device)
-        raw_data = self._obtain_data().to(self.device)
 
         dists = torch.cdist(data.reshape((len(data), -1)),
-                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+                            self.raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         sorted_indices = dists.argsort(dim=1)
-        knns = raw_data[sorted_indices[:, :k]]
+        knns = self.raw_data[sorted_indices[:, :k]]
         return knns
 
     def compute_dist(self, data, k, norm=2):
@@ -163,10 +147,9 @@ class KNNDistComp:
         """
 
         data = data.to(self.device)
-        raw_data = self._obtain_data().to(self.device)
 
         dists = torch.cdist(data.reshape((len(data), -1)),
-                            raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
+                            self.raw_data.reshape((len(self.main_data), -1)), p=norm)  # .to(self.device)
 
         sorted_dists, _ = dists.sort(dim=1)
         knn_means = sorted_dists[:, :k].mean(dim=1)
