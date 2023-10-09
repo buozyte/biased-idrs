@@ -21,7 +21,7 @@ class KNNDistComp:
         self.main_dataloader = DataLoader(self.main_data,
                                           shuffle=False,
                                           batch_size=self.num_samples,
-                                          #num_workers=num_workers,
+                                          num_workers=num_workers,
                                           pin_memory=False)
         self.device = device
         self.raw_data, self.raw_labels = self._obtain_data_with_labels()
