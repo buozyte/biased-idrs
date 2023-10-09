@@ -7,7 +7,7 @@ class KNNDistComp:
     Compute the distance of one or multiple samples to its/their k nearest neighbours (in the set data set)
     """
 
-    def __init__(self, main_data, num_workers, device):
+    def __init__(self, main_data, device):
         """
         Init KNN computer
         
@@ -21,7 +21,6 @@ class KNNDistComp:
         self.main_dataloader = DataLoader(self.main_data,
                                           shuffle=False,
                                           batch_size=self.num_samples,
-                                          num_workers=num_workers,
                                           pin_memory=False)
         self.device = device
         self.raw_data, self.raw_labels = self._obtain_data_with_labels()
@@ -60,7 +59,7 @@ class KNNDistComp:
 
         _, ids = dists.topk(k, dim=1, largest=False)
 
-        return torch.stack([raw_labels[id] for id in ids])
+        return torch.stack([self.raw_labels[id] for id in ids])
 
     def compute_1nn_oracle(self, data, norm=2):
         """
@@ -127,7 +126,7 @@ class KNNDistComp:
 
         _, ids = dists.topk(k, dim=1, largest=False)
 
-        return torch.stack([raw_data[id] for id in ids])
+        return torch.stack([self.raw_data[id] for id in ids])
 
     def compute_mean_dist(self, data, k, norm=2):
         """

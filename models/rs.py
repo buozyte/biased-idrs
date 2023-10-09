@@ -86,7 +86,7 @@ class RSClassifier(nn.Module):
         return class_counts
 
 
-    def predict(self, x, n, sigma, alpha, batch_size=None, bias=0, return_all_counts=False):
+    def predict(self, x, n, sigma, alpha, batch_size=None, bias=None, return_all_counts=False):
         """
         Evaluate the smoothed classifier g (based on the base classifier) at x.
         
@@ -119,7 +119,7 @@ class RSClassifier(nn.Module):
         return self.abstain
 
     @classmethod
-    def lower_conf_bound(k, n, alpha):
+    def lower_conf_bound(cls, k, n, alpha):
         """
         Compute a one-sided (1-alpha) lower confidence interval using the Clopper-Pearson confidence interval.
         (See paper: certified adversarial robustness via RS)
@@ -155,7 +155,7 @@ class RSClassifier(nn.Module):
 
         # generate samples to estimate/guess lower bound of p_a
         counts_bound = self.sample_under_noise(x, n_bound, sigma, batch_size)
-        p_a = self.lower_conf_bound(counts_bound[c_a].cpu(), n_bound, alpha)
+        p_a = RSClassifier.lower_conf_bound(counts_bound[c_a].cpu(), n_bound, alpha)
 
         if p_a > 0.5:
             return c_a, self.sigma * norm.ppf(p_a)  # norm.ppf = Phi^(-1)
