@@ -1,12 +1,14 @@
 import numpy as np
+import torch
 
 VARIANCE_FUNCTIONS = [None, "sigma_knn"]
 
 
 def sigma_knn(sigma, rate, m, distances, x_index):
     """
-    Input-dependent function to compute the variance for the sampling based on the k-nearest neighbours..
-    Based on function proposed in: intriguing properties of input-dependent RS
+    Input-dependent function to compute the variance for the sampling based on
+    the k-nearest neighbours. Based on function proposed in: intriguing properties
+    of input-dependent RS
 
     :param sigma: base value of variance
     :param rate: semi-elasticity constant for chosen sigma function
@@ -17,3 +19,19 @@ def sigma_knn(sigma, rate, m, distances, x_index):
     """
 
     return sigma * np.exp(rate * (distances[x_index] - m))
+
+def sigma_knn_fcn(sigma, rate, m, mean_distances_fcn, x):
+    """
+    Input-dependent function to compute the variance for the sampling based on
+    the k-nearest neighbours. Based on function proposed in: intriguing properties
+    of input-dependent RS
+
+    :param sigma: base value of variance
+    :param rate: semi-elasticity constant for chosen sigma function
+    :param m: normalization constant for data set
+    :param mean_distances_fcn: function returning mean distances to the k nearest neighbours
+    :param x: the current input
+    :return: callable object that returns the variance for given x
+    """
+
+    return sigma * torch.exp(rate * (mean_distances_fcn(x) - m))
