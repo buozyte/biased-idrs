@@ -10,9 +10,7 @@ from torch.utils.data import DataLoader
 from datasets import get_dataset, DATASETS, get_num_classes
 from knn import KNNDistComp
 from models.base_models.architectures import get_architecture
-from models.rs import RSClassifier
-from models.input_dependent_rs import IDRSClassifier
-from models.biased_idrs import BiasedIDRSClassifier
+from models import rs
 from input_dependent_functions.bias_functions import BIAS_FUNCTIONS
 from input_dependent_functions.variance_functions import VARIANCE_FUNCTIONS
 
@@ -79,7 +77,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
             if bias_func == "mu_knn_based":
                 knns[i * 100:(i + 1) * 100, :], distances[i * 100:(i + 1) * 100, :] = knn_computer.compute_knn_and_dists(test_data, norm=norm)
             if var_func == "sigma_knn":
-                mean_distances[i * 100:(i + 1) * 100] = knn_computer.compute_dist(test_data, num_nearest, norm)
+                mean_distances[i * 100:(i + 1) * 100] = knn_computer.compute_mean_dist(test_data, num_nearest, norm)
 
         distances = distances.numpy()
         mean_distances = mean_distances.numpy()
@@ -88,7 +86,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
             oracles[oracles == 0] = -1
         # ---------------------------------------------------------
 
-        smoothed_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+        smoothed_classifier = rs.BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                    sigma=base_sigma, device=device, bias_func=bias_func,
                                                    variance_func=var_func, oracles=oracles,
                                                    bias_weight=bias_weight, lipschitz=lipschitz_const,
@@ -101,15 +99,15 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
                                      num_workers=0, pin_memory=False)
         distances = torch.zeros(10000)
         for i, (test_data, labels) in enumerate(test_dataloader):
-            distances[i * 100:(i + 1) * 100] = dist_computer.compute_dist(test_data, num_nearest, norm)
+            distances[i * 100:(i + 1) * 100] = dist_computer.compute_mean_dist(test_data, num_nearest, norm)
         distances = distances.numpy()
 
-        smoothed_classifier = IDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+        smoothed_classifier = rs.IDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                              sigma=base_sigma, distances=distances, rate=rate, m=norm_const,
                                              device=device).to(device)
 
     else:
-        smoothed_classifier = RSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+        smoothed_classifier = rs.RSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                            sigma=base_sigma, device=device).to(device)
 
     smoothed_classifier.load_state_dict(checkpoint['state_dict'])
@@ -119,7 +117,7 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
     #   3. handle possibility to choose different alternative classifiers for (each) dataset -> via if cases
     if biased and bias_func is not None and "gradient" in bias_func:
         # just for testing :)
-        alt_classifier = BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
+        alt_classifier = rs.BiasedIDRSClassifier(base_classifier=base_classifier, num_classes=num_classes,
                                                       sigma=0.25, device=device).to(device)
         alt_classifier.load_state_dict(checkpoint['state_dict'])
         smoothed_classifier.alt_classifier = alt_classifier
