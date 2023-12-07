@@ -16,6 +16,7 @@ for path in sys.path:
 
 from train import main_train
 from certify import main_certify
+from constants import ALT_SIGMAS, PARAMETERS_DEPENDING_ON_DATASET
 
 
 project_name = "idrs"
@@ -64,14 +65,6 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         wandb.log(current_results)
         collected_results.append(current_results)
 
-    alt_sigmas = {
-        0.0: 0.0,
-        0.12: 0.126,
-        0.25: 0.263,
-        0.5: 0.53,
-        1.0: 1.0
-    }
-
     if mu is not None:
         mu, mu_weight = mu.split("-", 1)
         mu_weight = float(mu_weight)
@@ -85,6 +78,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         out_dir = os.path.join(out_dir, f'{mu}')
         out_dir = os.path.join(out_dir, f'mu_weight_{mu_weight}')
 
+    # PARAMETERS for the training and certification functions
     train_params = {
         "out_dir": out_dir,
         "base_sigma": base_sigma,
@@ -103,46 +97,15 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
         "bias_weight": mu_weight,
         "external_logger": wandb_logger,
     }
-    if dataset_name == "toy":
-        train_params["dataset"] = "toy_dataset_linear_sep"
-        train_params["arch"] = "linear_model"
-        train_params["epochs"] = 10
-        train_params["batch"] = 200
 
-        certify_params["dataset"] = "toy_dataset_linear_sep"
-        certify_params["index_max"] = 90
-        certify_params["batch"] = 200
-    if dataset_name == "toy_blobs":
-        train_params["dataset"] = "toy_dataset_blobs"
-        train_params["arch"] = "linear_blob_model"
-        train_params["epochs"] = 5
-        train_params["batch"] = 200
+    train_params_, certify_params_ = PARAMETERS_DEPENDING_ON_DATASET(
+        dataset_name, sigma=sigma, base_sigma=base_sigma, mu=mu, mu_weight=mu_weight
+    )
 
-        certify_params["dataset"] = "toy_dataset_blobs"
-        certify_params["index_max"] = 90
-        certify_params["batch"] = 200
-    elif dataset_name == "cone_toy":
-        train_params["dataset"] = "toy_dataset_cone_shaped"
-        train_params["arch"] = "toy_model"
-        train_params["epochs"] = 10
-        train_params["batch"] = 200
+    train_params.update(train_params_)
+    certify_params.update(certify_params_)
 
-        certify_params["dataset"] = "toy_dataset_cone_shaped"
-        certify_params["index_max"] = 90
-        certify_params["batch"] = 200
-    elif dataset_name == "cifar10":
-        train_params["dataset"] = dataset_name
-        train_params["arch"] = "cifar_resnet110"
-        train_params["batch"] = 400
-        if sigma is not None:
-            train_params["alt_sigma_aug"] = alt_sigmas[base_sigma]
-
-        certify_params["dataset"] = dataset_name
-        certify_params["batch"] = 400
-
-    if mu == "mu_knn_based":
-        certify_params["lipschitz_const"] = 3.0 * mu_weight
-
+    # TRAINGING
     logging.info("Start training procedure")
     start = time.time()
     main_train(**train_params)
@@ -152,6 +115,7 @@ def run(dataset_name: str, base_sigma: float, sigma: str, mu: str, _run):
     if mu is not None:
         out_dir = os.path.join(out_dir, f'mu_strength_{mu_weight}')
 
+    # CERTIFICATION
     logging.info("Start certification procedure")
     start = time.time()
     main_certify(**certify_params)
