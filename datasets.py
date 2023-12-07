@@ -9,15 +9,18 @@ from toy_datasets.data_lin_separable import ToyDatasetLinearSeparationTrain, Toy
 from toy_datasets.data_cone_shaped import ToyDatasetConeShapedTrain, ToyDatasetConeShapedTest
 from toy_datasets.data_blobs import ToyDatasetBlobsTrain, ToyDatasetBlobsTest
 
+from constants import PATH_DATA
+
+import logging
+logger = logging.getLogger(__name__)
+
 # set this environment variable to the location of your imagenet directory if you want to read ImageNet data.
 # make sure your val directory is preprocessed to look like the train directory, e.g. by running this script
 # https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh
 IMAGENET_LOC_ENV = "IMAGENET_DIR"
 
 # list of all datasets
-# DATASETS = ["imagenet", "cifar10", "unaugmented_cifar10", "mnist", "unaugmented_mnist", "toy_dataset_linear_sep"]
-DATASETS = ["cifar10", "toy_dataset_linear_sep", "toy_dataset_blobs", "toy_dataset_cone_shaped"]
-
+from constants import DATASETS
 
 def get_dataset(dataset: str, split: str) -> Dataset:
     """Return the dataset as a PyTorch Dataset object"""
@@ -40,6 +43,31 @@ def get_dataset(dataset: str, split: str) -> Dataset:
         return _toy_dataset_blobs(split)
     elif dataset == "toy_dataset_cone_shaped":
         return _toy_dataset_cone_shaped(split)
+
+def get_dataset_additional_parameters(dataset: str) -> Tuple:
+    if dataset == 'cifar10':
+        spatial_size = 32
+        num_channels = 3
+        norm_const = 5
+
+    elif dataset == 'mnist':
+        spatial_size = 28
+        num_channels = 1
+        norm_const = 1.5
+
+    # dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
+    elif "toy_dataset" in dataset:  
+        spatial_size = 2
+        num_channels = 0
+        norm_const = 0
+
+    else:
+        logger.warn(f"Got dataset {dataset} with unknown additional parameters:\n  return all zeros")
+        spatial_size = 0
+        num_channels = 0
+        norm_const = 0
+    
+    return spatial_size, num_channels, norm_const
 
 
 def get_num_classes(dataset: str):
@@ -80,38 +108,38 @@ _MNIST_STDDEV = [0.3081]
 
 def _cifar10(split: str) -> Dataset:
     if split == "train":
-        return datasets.CIFAR10("./dataset_cache", train=True, download=True, transform=transforms.Compose([
+        return datasets.CIFAR10(PATH_DATA, train=True, download=True, transform=transforms.Compose([
             transforms.RandomCrop(32, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()
         ]))
     elif split == "test":
-        return datasets.CIFAR10("./dataset_cache", train=False, download=True, transform=transforms.ToTensor())
+        return datasets.CIFAR10(PATH_DATA, train=False, download=True, transform=transforms.ToTensor())
 
 
 def _unaugmented_cifar10(split: str) -> Dataset:
     if split == "train":
-        return datasets.CIFAR10("./dataset_cache", train=True, download=True, transform=transforms.ToTensor())
+        return datasets.CIFAR10(PATH_DATA, train=True, download=True, transform=transforms.ToTensor())
     elif split == "test":
-        return datasets.CIFAR10("./dataset_cache", train=False, download=True, transform=transforms.ToTensor())
+        return datasets.CIFAR10(PATH_DATA, train=False, download=True, transform=transforms.ToTensor())
 
 
 def _mnist(split: str) -> Dataset:
     if split == "train":  # TODO: Define the mnist_cache folders
-        return datasets.MNIST("./mnist_cache", train=True, download=True, transform=transforms.Compose([
+        return datasets.MNIST(PATH_DATA, train=True, download=True, transform=transforms.Compose([
             transforms.RandomCrop(28, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()
         ]))
     elif split == "test":
-        return datasets.MNIST("./mnist_cache", train=False, download=True, transform=transforms.ToTensor())
+        return datasets.MNIST(PATH_DATA, train=False, download=True, transform=transforms.ToTensor())
 
 
 def _unaugmented_mnist(split: str) -> Dataset:
     if split == "train":  # TODO: Define the mnist_cache folders
-        return datasets.MNIST("./mnist_cache", train=True, download=True, transform=transforms.ToTensor())
+        return datasets.MNIST(PATH_DATA / "MNIST", train=True, download=True, transform=transforms.ToTensor())
     elif split == "test":
-        return datasets.MNIST("./mnist_cache", train=False, download=True, transform=transforms.ToTensor())
+        return datasets.MNIST(PATH_DATA / "MNIST", train=False, download=True, transform=transforms.ToTensor())
 
 
 def _imagenet(split: str) -> Dataset:

@@ -1,24 +1,34 @@
 # evaluate a smoothed classifier on a dataset
 import argparse
-# import datetime
+import datetime
 from time import time
 import os
+import pickle as pkl
 
 import torch
 from torch.utils.data import DataLoader
+from torch.nn import Sequential
 
-from datasets import get_dataset, DATASETS, get_num_classes
+import datasets as ds
+import utils
 from knn import KNNDistComp
 from models.base_models.architectures import get_architecture
 from models import rs
 from input_dependent_functions.bias_functions import BIAS_FUNCTIONS
 from input_dependent_functions.variance_functions import VARIANCE_FUNCTIONS
+from constants import DATASETS
+
+from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger_file = logging.getLogger(__name__+"_file")
 
 
 def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, skip=1, max=-1, split="test", N0=100,
                  N=100000, alpha=0.001, norm=2, num_workers=2, use_cuda=False, index_min=0, index_max=10000,
                  id_var=False, num_nearest=20, var_func=None, rate=0.01, biased=False, num_nearest_bias=5,
-                 bias_weight=1, bias_func=None, lipschitz_const=0.0, external_logger=None):
+                 bias_weight=1, bias_func=None, lipschitz_const=0.0, external_logger=None, add_bias_layer=False):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -28,35 +38,30 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
 
     if not os.path.exists(out_dir):
         os.makedirs(out_dir, exist_ok=True)
-    outfile = os.path.join(out_dir, 'results.txt')
-    f = open(outfile, 'a')
-    print("idx\tlabel\tpredict\tradius\tcorrect\ttime", file=f, flush=True)
+    out_dir = Path(out_dir)
+
+    logfile_name = Path(out_dir) / "results.txt"
+    path_results = Path(out_dir) / "results.pkl"
+    logger_file.addHandler(logging.FileHandler(logfile_name))
+    logger_file.info(f"idx | label | predict | radius | correct | time")
+
 
     # --- prepare data ---
-    train_dataset = get_dataset(dataset, "train")
-    test_dataset = get_dataset(dataset, "test")
+    train_dataset = ds.get_dataset(dataset, "train")
+    test_dataset = ds.get_dataset(dataset, "test")
+    num_classes = ds.get_num_classes(dataset)
 
-    if dataset == 'cifar10':
-        spatial_size = 32
-        num_channels = 3
-        norm_const = 5
-    elif dataset == 'mnist':
-        spatial_size = 28
-        num_channels = 1
-        norm_const = 1.5
-    elif "toy_dataset" in dataset:  # dataset == "toy_dataset_linear_sep" or dataset == "toy_dataset_cone_shaped":
-        spatial_size = 2
-        num_channels = 0
-        norm_const = 0
-    else:
-        print("shit happens...")
-        spatial_size = 0
-        num_channels = 0
-        norm_const = 0
+    spatial_size, num_channels, norm_const = \
+        ds.get_dataset_additional_parameters(dataset)
     # --------------------
 
+    # add bias layer if necessary
+    if add_bias_layer:
+        bias_layer = utils.AddSkipConnection(
+            utils.ConstantBiasLayer((num_channels, spatial_size, spatial_size)))
+        base_classifier = Sequential(bias_layer, base_classifier)
+
     # create the smoothed classifier g
-    num_classes = get_num_classes(dataset)
     if biased:
         # ---------------------------------------------------------
         # computation of KNN related values (for variance and bias)
@@ -141,6 +146,11 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
     correct_sum = 0
     certified_sum = 0
     overall_time_start = time()
+    results = {
+        "sample_index": [],
+        "correct": [],
+        "certified_radius": []
+    }
     for i in range(index_min, index_max):
         # only certify every skip examples, and stop after max examples
         if i % skip != 0:
@@ -158,16 +168,28 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
         if id_var or biased:
             prediction, radius = smoothed_classifier.certify(inputs, i, N0, N, alpha, batch, dim.item(), 1000)
         else:
-            prediction, radius = smoothed_classifier.certify(inputs, N0, N, alpha, batch)
+            prediction, radius = smoothed_classifier.certify(inputs, N0, N, base_sigma, alpha, batch)
         after_time = time()
         correct = int(prediction == label)
 
-        time_elapsed = after_time - before_time  # str(datetime.timedelta(seconds=(after_time - before_time)))
-        print("{}\t{}\t{}\t{}\t{}\t{}".format(
-            i, label, prediction, radius, correct, time_elapsed), file=f, flush=True)
+        time_elapsed = after_time - before_time  # 
+        logger_file.info(
+            f"{i:<4}| " + \
+            f"{label:<6}| " + \
+            f"{prediction:<8}| " + \
+            f"{radius:<7.3}| " + \
+            f"{correct:<8}| " + \
+            f"{str(datetime.timedelta(seconds=time_elapsed)):<11}")
 
         correct_sum += correct
         certified_sum += 1
+
+        utils.dict_append(results,
+            {
+                "sample_index": i,
+                "correct": correct,
+                "certified_radius": radius}
+        )
 
         if external_logger is not None:
             current_result = {
@@ -187,9 +209,10 @@ def main_certify(dataset, trained_classifier, base_sigma, out_dir, batch=1000, s
             }
             external_logger(current_result)
 
-    print(" ", file=f, flush=True)
-    print(f"Total correct / total certified: {correct_sum} / {certified_sum}", file=f, flush=True)
-    f.close()
+
+    with open(path_results, "wb") as f:
+        pkl.dump(results, f)
+    logger_file.info(f"\nTotal correct / total certified: {correct_sum} / {certified_sum}")
 
 
 if __name__ == "__main__":
@@ -245,6 +268,7 @@ if __name__ == "__main__":
                         help='Choice for the bias function to be used')
     parser.add_argument('--lipschitz_const', default=0.0, type=float,
                         help="Lipschitz constant of the bias functions")
+    parser.add_argument('--add_bias_layer', type=bool, default=False)
     args = parser.parse_args()
 
     args_dict = vars(args)

@@ -12,7 +12,6 @@ class KNNDistComp:
         Init KNN computer
         
         :param main_data: base data for the computation of the k nearest neighbours
-        :param num_workers: number of workers to be used
         :param device: device for device handling
         """
 

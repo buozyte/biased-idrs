@@ -14,6 +14,39 @@ logger = logging.getLogger(__name__)
 device = torch.device("cuda")
 
 
+def dict_append(d, d_new):
+    """ Appends values from d_new to the values in d.
+    
+    """
+    for k, v in d_new.items():
+        d[k].append(v)
+
+    return d
+
+
+class AddSkipConnection(nn.Module):
+    """ Modifies a given module such that the input is added to its output.
+    
+    """
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+
+    def forward(self, x):
+        return self.module(x) + x
+
+
+class ConstantBiasLayer(nn.Module):
+    """ Linear layer with the fixed identity function.
+
+    """
+    def __init__(self, shape):
+        super().__init__()
+        self.b = nn.Parameter(torch.zeros(shape))
+
+    def forward(self, x):
+        return x + self.b
+
 
 def gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device):
     """
@@ -265,3 +298,29 @@ def train(network, X, y, lr=1e-3, epochs=1000, opt=None):
         opt.zero_grad()
         l.backward()
         opt.step()
+
+
+# TODO: replace by rs.***RSClassifier.sample_under_noise (?)
+def get_augmentation(
+        inputs, dist_computer, num_nearest,
+        gaussian_aug, base_sigma, rate, norm_const, num_channels, spatial_size,
+        biased=False, bias_func=None, bias_weight=0):
+    """ Computes augmentations of the point according to the given sigma
+
+    """
+    # start_random = time.time()
+    if gaussian_aug: # TODO
+        dists = dist_computer.compute_mean_dist(inputs, k=num_nearest)
+        sigmas = base_sigma * torch.exp(rate * (dists - norm_const))
+        sigmas = gaussian_normalization(inputs, sigmas, num_channels, spatial_size, device)
+    else:
+        sigmas = base_sigma
+
+    bias = torch.zeros_like(inputs, device=device)
+    if biased:
+        raise NotImplementedError("Training with biased perturbations not yet supported")
+        if bias_func == "mu_toy":
+            orthogonal_vector = torch.tensor([-1, 1])
+            bias = mu_toy_train(labels, orthogonal_vector, device)
+
+    return bias_weight * bias + torch.randn_like(inputs, device=device) * sigmas

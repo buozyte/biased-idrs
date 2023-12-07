@@ -7,6 +7,7 @@ import numpy as np
 from input_dependent_functions import bias_functions as bf
 from input_dependent_functions import variance_functions as vf
 
+from utils import AddSkipConnection
 from certified_radius import *
 
 
@@ -74,7 +75,7 @@ class RSClassifier(nn.Module):
                 # generate and evaluate (/classify) the perturbed samples
                 noise = bias_repeat + torch.randn_like(repeat_x_n_times, device=self.device) * sigma
                 perturbed_predictions = self(
-                    (repeat_x_n_times + noise).reshape(-1, *repeat_x_n_times.shape[2:])
+                    (repeat_x_n_times + noise)#.reshape(-1, *repeat_x_n_times.shape[2:])
                     )
 
                 # predicted class for one sample = index of highest value
@@ -171,6 +172,20 @@ class RSClassifier(nn.Module):
         """
 
         return self.base_classifier(x)
+
+
+    def add_module(self, module):
+        """
+        Add new module F to the base classifier f, such that the whole new forward
+        pass of x is f(F(x)).
+
+        :param module: nn.Module F
+        :return: None, the self.base_classifier attribute is updated.
+        """
+
+        self.base_classifier = nn.Sequential(module, self.base_classifier)
+
+        return
 
 
 
